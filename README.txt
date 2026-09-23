@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.7
+Махачкала LIVE Bot v2.7.1
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,11 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.7.1:
+- fixes event-date extraction so source datelines do not override the actual event date
+- extracts time and exact affected street count from article paragraphs
+- preview returns generated summary instead of raw source text
 
 v2.7:
 - persistent publication journal in an isolated Supabase schema: makhachkala_live

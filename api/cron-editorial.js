@@ -1,6 +1,7 @@
 const {sendTelegramMessage}=require("../lib/telegram.cjs");
 const {collectEditorialCandidates}=require("../lib/editorial.cjs");
 const {formatEditorial}=require("../lib/format.cjs");
+const {buildEditorialSummary}=require("../lib/common.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 
 module.exports=async function handler(req,res){
@@ -43,7 +44,7 @@ module.exports=async function handler(req,res){
 
     return res.status(200).json({
       ok:true,
-      version:"2.7.0",
+      version:"2.7.1",
       mode:auto?"publish":"dry-run",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
       found:result.candidates.length,
@@ -51,7 +52,7 @@ module.exports=async function handler(req,res){
       candidates:result.candidates.map(x=>({
         title:x.title,source:x.source,date:x.pubDate.toISOString(),
         priority:x.priority,score:x.score,priorityReason:x.priorityReason,
-        summary:x.description||"",postPreview:formatEditorial(x),link:x.link
+        summary:buildEditorialSummary(x),postPreview:formatEditorial(x),link:x.link
       })),
       published,skipped
     });
