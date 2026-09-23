@@ -14,6 +14,6 @@ module.exports=async function handler(req,res){
     const auto=process.env.AUTO_PUBLISH==="true";
     const published=[];
     if(auto){for(const item of candidates){const msg=await sendTelegramMessage(formatUrgent(item),{parseMode:"HTML"});published.push({message_id:msg.message_id,title:item.title,link:item.link});}}
-    return res.status(200).json({ok:true,version:"2.5.0",mode:auto?"publish":"dry-run",window:{from:start.toISOString(),to:now.toISOString()},found:candidates.length,warning:sourceError,candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),link:x.link})),published});
+    return res.status(200).json({ok:true,version:"2.6.0",mode:auto?"publish":"dry-run",window:{from:start.toISOString(),to:now.toISOString()},found:candidates.length,warning:sourceError,candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),link:x.link})),published});
   }catch(e){return res.status(500).json({ok:false,error:e.message});}
 };

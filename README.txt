@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.5
+Махачкала LIVE Bot v2.6
 
 Release gate:
 - npm test / node tests/run-tests.cjs
@@ -14,5 +14,3 @@ Key safety behavior:
 - Real source connectivity is verified only after deployment via /api/source-health.
 
 Do not enable AUTO_PUBLISH until source-health and dry-run endpoints have been checked in production and persistent deduplication is added.
-
-Git deployment connection verified on 2026-09-23.

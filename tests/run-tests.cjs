@@ -13,9 +13,9 @@ function test(name, fn){ try{ fn(); console.log(`PASS ${name}`); } catch(e){ con
 async function asyncTest(name, fn){ try{ await fn(); console.log(`PASS ${name}`); } catch(e){ console.error(`FAIL ${name}: ${e.stack||e.message}`); process.exitCode=1; }}
 
 // Manifest / syntax
-test('package.json valid and version 2.5.0', ()=>{
+test('package.json valid and version 2.6.0', ()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-  assert.equal(pkg.version,'2.5.0');
+  assert.equal(pkg.version,'2.6.0');
   assert.equal(pkg.scripts.test,'node tests/run-tests.cjs');
 });
 
@@ -35,6 +35,55 @@ test('13:00 Moscow run starts at 08:00 Moscow slot', ()=>{
 });
 test('18:00 Moscow run starts at 13:00 Moscow slot', ()=>{
   assert.equal(common.editorialWindowStart(new Date('2026-09-23T15:00:05Z')).toISOString(),'2026-09-23T10:00:00.000Z');
+});
+
+
+
+test('editorial scoring prioritizes major outage over culture opening', ()=>{
+  const outage=common.classifyEditorial({title:'Более 70 улиц Махачкалы обесточат из-за ремонта трансформатора'});
+  const culture=common.classifyEditorial({title:'В Махачкале открылся детский центр ремесел'});
+  assert.equal(outage.priority,'P1');
+  assert.ok(outage.score > culture.score);
+});
+
+test('RIA description parser reads og description', ()=>{
+  const html='<meta property="og:description" content="Короткое описание новости о Махачкале">';
+  assert.equal(sources.extractDescriptionFromArticle(html),'Короткое описание новости о Махачкале');
+});
+
+test('compactText limits long summaries', ()=>{
+  const s='слово '.repeat(100);
+  assert.ok(common.compactText(s,120).length <= 121);
+  assert.ok(common.compactText(s,120).endsWith('…'));
+});
+
+
+
+test('operational summary extracts date, time, affected streets and cause', ()=>{
+  const item={
+    title:'Более 70 улиц Махачкалы обесточат из-за ремонта силового трансформатора',
+    description:'24 сентября с 09:00 до 20:00 будет ограничено электроснабжение 76 улиц Махачкалы в связи с ремонтом силового трансформатора.',
+    priority:'P1'
+  };
+  const summary=common.buildEditorialSummary(item);
+  assert.match(summary,/24 сентября/);
+  assert.match(summary,/09:00/);
+  assert.match(summary,/20:00/);
+  assert.match(summary,/76 улиц/);
+  assert.match(summary,/ремонтом силового трансформатора/i);
+});
+
+test('formatted P1 preview includes priority and compact factual summary', ()=>{
+  const out=format.formatEditorial({
+    title:'Более 70 улиц Махачкалы обесточат из-за ремонта силового трансформатора',
+    description:'24 сентября с 09:00 до 20:00 будет ограничено электроснабжение 76 улиц Махачкалы в связи с ремонтом силового трансформатора.',
+    source:'РИА «Дагестан»',
+    link:'https://riadagestan.ru/news/economy/test',
+    priority:'P1'
+  });
+  assert.match(out,/⚡/);
+  assert.match(out,/#P1/);
+  assert.match(out,/76 улиц/);
 });
 
 // URL parsing
