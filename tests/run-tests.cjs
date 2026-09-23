@@ -6,6 +6,7 @@ const root = path.resolve(__dirname,'..');
 const common = require('../lib/common.cjs');
 const sources = require('../lib/sources.cjs');
 const format = require('../lib/format.cjs');
+const journal = require('../lib/journal.cjs');
 
 function test(name, fn){ try{ fn(); console.log(`PASS ${name}`); } catch(e){ console.error(`FAIL ${name}: ${e.message}`); process.exitCode=1; }}
 
@@ -13,9 +14,9 @@ function test(name, fn){ try{ fn(); console.log(`PASS ${name}`); } catch(e){ con
 async function asyncTest(name, fn){ try{ await fn(); console.log(`PASS ${name}`); } catch(e){ console.error(`FAIL ${name}: ${e.stack||e.message}`); process.exitCode=1; }}
 
 // Manifest / syntax
-test('package.json valid and version 2.6.0', ()=>{
+test('package.json valid and version 2.7.0', ()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-  assert.equal(pkg.version,'2.6.0');
+  assert.equal(pkg.version,'2.7.0');
   assert.equal(pkg.scripts.test,'node tests/run-tests.cjs');
 });
 
@@ -143,6 +144,53 @@ test('no obvious secret literals in package', ()=>{
 
 
 (async()=>{
+
+  await asyncTest('journal claim sends protected Supabase RPC request', async()=>{
+    const oldFetch=global.fetch;
+    const oldSecret=process.env.PUBLISH_SECRET;
+    process.env.PUBLISH_SECRET='test-secret';
+    let captured=null;
+    global.fetch=async (url,opts)=>{
+      captured={url:String(url),opts};
+      return {ok:true,status:200,text:async()=>JSON.stringify({claimed:true,status:'pending',attempt_count:1})};
+    };
+    try{
+      const out=await journal.claimPublication({link:'https://example.test/news/1',title:'Тест',source:'Источник',priority:'P1'});
+      assert.equal(out.claimed,true);
+      assert.match(captured.url,/\/rest\/v1\/rpc\/mkl_claim_publication$/);
+      assert.equal(captured.opts.headers['x-publish-secret'],'test-secret');
+      assert.match(captured.opts.headers.apikey,/^sb_publishable_/);
+      const body=JSON.parse(captured.opts.body);
+      assert.equal(body.p_source_url,'https://example.test/news/1');
+      assert.equal(body.p_priority,'P1');
+    } finally {
+      global.fetch=oldFetch;
+      if(oldSecret===undefined) delete process.env.PUBLISH_SECRET; else process.env.PUBLISH_SECRET=oldSecret;
+    }
+  });
+
+  await asyncTest('journal marks publication status via RPC', async()=>{
+    const oldFetch=global.fetch;
+    const oldSecret=process.env.PUBLISH_SECRET;
+    process.env.PUBLISH_SECRET='test-secret';
+    let captured=null;
+    global.fetch=async (url,opts)=>{
+      captured={url:String(url),opts};
+      return {ok:true,status:200,text:async()=>JSON.stringify({ok:true,status:'published',telegram_message_id:42})};
+    };
+    try{
+      const out=await journal.markPublication('https://example.test/news/1','published',42,null);
+      assert.equal(out.status,'published');
+      assert.match(captured.url,/\/rest\/v1\/rpc\/mkl_mark_publication$/);
+      const body=JSON.parse(captured.opts.body);
+      assert.equal(body.p_telegram_message_id,42);
+      assert.equal(body.p_status,'published');
+    } finally {
+      global.fetch=oldFetch;
+      if(oldSecret===undefined) delete process.env.PUBLISH_SECRET; else process.env.PUBLISH_SECRET=oldSecret;
+    }
+  });
+
   await asyncTest('RIA end-to-end fixture keeps only local nonpolitical stories', async()=>{
     const oldFetch=global.fetch;
     const pages = new Map([
