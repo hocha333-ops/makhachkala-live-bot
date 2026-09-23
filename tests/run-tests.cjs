@@ -8,13 +8,14 @@ const sources=require("../lib/sources.cjs");
 const format=require("../lib/format.cjs");
 const journal=require("../lib/journal.cjs");
 const reconcileHandler=require("../api/publication-reconcile.js");
+const auth=require("../lib/auth.cjs");
 
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.8.0 and Vercel release gate",()=>{
+test("manifest version 2.9.0 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.8.0");
+  assert.equal(pkg.version,"2.9.0");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -92,6 +93,22 @@ test("RIA locality and politics filters",()=>{
   assert.equal(sources.isRiaLocalArticle("https://riadagestan.ru/news/economy/test","Более 70 улиц Махачкалы обесточат"),true);
   assert.equal(sources.isRiaPolitical("https://riadagestan.ru/news/politics/test","В Махачкале прошло заседание"),true);
   assert.equal(sources.isRiaPolitical("https://riadagestan.ru/news/society/test","В Махачкале стартовало голосование на выборах"),true);
+});
+
+test("cron endpoints support separate CRON_SECRET without weakening publish auth",()=>{
+  const oldPublish=process.env.PUBLISH_SECRET,oldCron=process.env.CRON_SECRET;
+  process.env.PUBLISH_SECRET="publish-test-secret";
+  process.env.CRON_SECRET="cron-test-secret";
+  try{
+    assert.equal(auth.isPublishOrCronAuthorized({headers:{"x-publish-secret":"publish-test-secret"}}),true);
+    assert.equal(auth.isPublishOrCronAuthorized({headers:{authorization:"Bearer cron-test-secret"}}),true);
+    assert.equal(auth.isPublishOrCronAuthorized({headers:{authorization:"Bearer wrong"}}),false);
+    assert.equal(auth.isPublishOrCronAuthorized({headers:{}}),false);
+    assert.equal(auth.isPublishAuthorized({headers:{authorization:"Bearer cron-test-secret"}}),false);
+  }finally{
+    if(oldPublish===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldPublish;
+    if(oldCron===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=oldCron;
+  }
 });
 
 test("AUTO_PUBLISH remains opt-in",()=>{

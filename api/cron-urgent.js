@@ -3,13 +3,14 @@ const {fetchMchsFeed,filterMchsLocal}=require("../lib/sources.cjs");
 const {previousHourBoundary,inWindow,uniqueBy}=require("../lib/common.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
+const {isPublishOrCronAuthorized}=require("../lib/auth.cjs");
 
 const urgentWords=/авар|чс|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|электроснаб|водоснаб|газоснаб|обесточ|непогод|ливн|ветер/i;
 
 module.exports=async function handler(req,res){
   try{
     if(req.method!=="GET") return res.status(405).json({ok:false,error:"GET only"});
-    if(!process.env.PUBLISH_SECRET||req.headers["x-publish-secret"]!==process.env.PUBLISH_SECRET){
+    if(!isPublishOrCronAuthorized(req)){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
     const now=new Date(),start=previousHourBoundary(now);
@@ -41,7 +42,7 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.8.0",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.9.0",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
       found:candidates.length,warning:sourceError,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
