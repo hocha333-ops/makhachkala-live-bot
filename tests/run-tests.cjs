@@ -14,9 +14,9 @@ function test(name, fn){ try{ fn(); console.log(`PASS ${name}`); } catch(e){ con
 async function asyncTest(name, fn){ try{ await fn(); console.log(`PASS ${name}`); } catch(e){ console.error(`FAIL ${name}: ${e.stack||e.message}`); process.exitCode=1; }}
 
 // Manifest / syntax
-test('package.json valid and version 2.7.0', ()=>{
+test('package.json valid and version 2.7.1', ()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-  assert.equal(pkg.version,'2.7.0');
+  assert.equal(pkg.version,'2.7.1');
   assert.equal(pkg.scripts.test,'node tests/run-tests.cjs');
 });
 
@@ -52,6 +52,16 @@ test('RIA description parser reads og description', ()=>{
   assert.equal(sources.extractDescriptionFromArticle(html),'Короткое описание новости о Махачкале');
 });
 
+test('RIA description parser keeps operational article paragraphs and removes dateline', ()=>{
+  const html='<meta property="og:description" content="МАХАЧКАЛА, 23 сентября – РИА «Дагестан». Специалисты проведут 24 сентября ремонтные работы на силовом трансформаторе."><p>МАХАЧКАЛА, 23 сентября – РИА «Дагестан». Специалисты проведут 24 сентября ремонтные работы на силовом трансформаторе.</p><p>В связи с этим с 09:00 до 20:00 будет временно ограничено электроснабжение на 76 улицах города.</p>';
+  const d=sources.extractDescriptionFromArticle(html);
+  assert.doesNotMatch(d,/^МАХАЧКАЛА/);
+  assert.match(d,/24 сентября/);
+  assert.match(d,/09:00/);
+  assert.match(d,/20:00/);
+  assert.match(d,/76 улицах/);
+});
+
 test('compactText limits long summaries', ()=>{
   const s='слово '.repeat(100);
   assert.ok(common.compactText(s,120).length <= 121);
@@ -60,18 +70,19 @@ test('compactText limits long summaries', ()=>{
 
 
 
-test('operational summary extracts date, time, affected streets and cause', ()=>{
+test('operational summary ignores source dateline and extracts actual outage facts', ()=>{
   const item={
     title:'Более 70 улиц Махачкалы обесточат из-за ремонта силового трансформатора',
-    description:'24 сентября с 09:00 до 20:00 будет ограничено электроснабжение 76 улиц Махачкалы в связи с ремонтом силового трансформатора.',
+    description:'МАХАЧКАЛА, 23 сентября – РИА «Дагестан». Для повышения надежности электроснабжения специалисты проведут 24 сентября ремонтные работы на силовом трансформаторе. В связи с этим с 09:00 до 20:00 будет временно ограничено электроснабжение на 76 улицах города.',
     priority:'P1'
   };
   const summary=common.buildEditorialSummary(item);
   assert.match(summary,/24 сентября/);
+  assert.doesNotMatch(summary,/23 сентября/);
   assert.match(summary,/09:00/);
   assert.match(summary,/20:00/);
   assert.match(summary,/76 улиц/);
-  assert.match(summary,/ремонтом силового трансформатора/i);
+  assert.match(summary,/Причина — ремонт силового трансформатора/i);
 });
 
 test('formatted P1 preview includes priority and compact factual summary', ()=>{

@@ -2,7 +2,7 @@ name: tests
 on:
   push:
     branches:
-      - release/v2.7
+      - "release/**"
       - main
 jobs:
   test:
