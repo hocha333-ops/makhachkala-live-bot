@@ -11,5 +11,5 @@ module.exports = async function handler(req,res){
   const pack = x => Array.isArray(x) ? {ok:true,count:x.length,latest:x.slice(0,3).map(i=>({title:i.title,date:i.pubDate?.toISOString(),link:i.link}))} : {ok:false,error:x.error};
   const sources={ria:pack(ria),mchsNews:pack(mNews),mchsOperational:pack(mOps)};
   const allOk=Object.values(sources).every(x=>x.ok);
-  res.status(allOk?200:207).json({ok:allOk,version:"2.7.1",elapsedMs:Date.now()-started,sources});
+  res.status(allOk?200:207).json({ok:allOk,version:"2.7.2",elapsedMs:Date.now()-started,sources});
 };

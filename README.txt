@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.7.1
+Махачкала LIVE Bot v2.7.2
 
 Release gate:
 - GitHub Actions: npm test
@@ -7,10 +7,10 @@ Release gate:
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
 
-v2.7.1:
-- fixes event-date extraction so source datelines do not override the actual event date
-- extracts time and exact affected street count from article paragraphs
-- preview returns generated summary instead of raw source text
+v2.7.2:
+- limits RIA text extraction to the current article body, stopping before related news
+- prevents unrelated related-news text from changing P1-P5 classification
+- keeps exact outage date/time/street count in generated P1 summaries
 
 v2.7:
 - persistent publication journal in an isolated Supabase schema: makhachkala_live
