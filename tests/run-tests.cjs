@@ -158,7 +158,8 @@ test('no obvious secret literals in package', ()=>{
       const out=await journal.claimPublication({link:'https://example.test/news/1',title:'Тест',source:'Источник',priority:'P1'});
       assert.equal(out.claimed,true);
       assert.match(captured.url,/\/rest\/v1\/rpc\/mkl_claim_publication$/);
-      assert.equal(captured.opts.headers['x-publish-secret'],'test-secret');
+      assert.match(captured.opts.headers['x-publish-secret-sha256'],/^[a-f0-9]{64}$/);
+      assert.equal(captured.opts.headers['x-publish-secret-sha256'],'9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08');
       assert.match(captured.opts.headers.apikey,/^sb_publishable_/);
       const body=JSON.parse(captured.opts.body);
       assert.equal(body.p_source_url,'https://example.test/news/1');
