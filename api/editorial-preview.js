@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
     res.setHeader("Cache-Control","s-maxage=120, stale-while-revalidate=300");
     const result=await collectEditorialCandidates(new Date(),5);
     return res.status(200).json({
-      ok:true,version:"2.7.2",mode:"preview-only",
+      ok:true,version:"2.7.3",mode:"preview-only",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
       warnings:result.warnings,
       candidates:result.candidates.map(x=>({

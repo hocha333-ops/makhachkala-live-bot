@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.7.2
+Махачкала LIVE Bot v2.7.3
 
 Release gate:
 - GitHub Actions: npm test

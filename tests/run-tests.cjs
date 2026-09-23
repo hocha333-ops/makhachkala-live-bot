@@ -11,10 +11,10 @@ const journal=require("../lib/journal.cjs");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.7.2",()=>{
+test("manifest version 2.7.3 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.7.2");
-  assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
+  assert.equal(pkg.version,"2.7.3");
+  assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");\n  assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
 
 test("all JS/CJS syntax valid",()=>{
@@ -29,7 +29,7 @@ test("Moscow editorial windows",()=>{
   assert.equal(common.editorialWindowStart(new Date("2026-09-23T15:00:05Z")).toISOString(),"2026-09-23T10:00:00.000Z");
 });
 
-test("outage P1 outranks culture P3",()=>{
+test("HTML entities are normalized before summaries",()=>{\n  const input="&nbsp;Текст&nbsp;&laquo;Устар&raquo;&nbsp;&#160;и&#xA0;ещё &mdash; тест";\n  const out=common.stripHtml(input);\n  assert.equal(out,"Текст «Устар» и ещё — тест");\n  assert.doesNotMatch(out,/&nbsp;|&#160;|&#xA0;/i);\n});\n\ntest("outage P1 outranks culture P3",()=>{
   const outage=common.classifyEditorial({title:"Более 70 улиц Махачкалы обесточат из-за ремонта трансформатора"});
   const culture=common.classifyEditorial({title:"В столице Дагестана начал работу детский центр ремесленных традиций «Устар»",description:"В Махачкале открылся детский культурно-просветительский центр. Новая площадка позволит детям изучать традиционные ремесла."});
   assert.equal(outage.priority,"P1");

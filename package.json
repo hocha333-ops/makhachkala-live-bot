@@ -1,7 +1,10 @@
 {
   "name": "makhachkala-live-bot",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "private": true,
-  "scripts": {"test": "node tests/run-tests.cjs"},
+  "scripts": {
+    "test": "node tests/run-tests.cjs",
+    "vercel-build": "npm test"
+  },
   "engines": {"node": ">=20"}
 }

@@ -33,7 +33,7 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.7.2",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.7.3",mode:auto?"publish":"dry-run",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
       found:result.candidates.length,warnings:result.warnings,
       candidates:result.candidates.map(x=>({
