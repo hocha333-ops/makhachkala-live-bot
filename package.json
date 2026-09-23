@@ -1,9 +1,7 @@
 {
   "name": "makhachkala-live-bot",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
   "scripts": {"test": "node tests/run-tests.cjs"},
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": {"node": ">=20"}
 }

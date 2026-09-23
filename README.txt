@@ -1,16 +1,27 @@
-Махачкала LIVE Bot v2.6
+Махачкала LIVE Bot v2.7
 
 Release gate:
-- npm test / node tests/run-tests.cjs
+- GitHub Actions: npm test
 - node --check for every JS/CJS file
-- no hardcoded Telegram token
-- AUTO_PUBLISH defaults to OFF unless explicitly set to true
+- Vercel preview deployment must be READY
+- source-health and editorial preview are checked again after Production deployment
+- AUTO_PUBLISH stays OFF until the final publication test
 
-Key safety behavior:
-- RIA general Dagestan stories are NOT treated as Makhachkala merely because the agency dateline says “МАХАЧКАЛА”.
-- /news/makhachkala/* is accepted as city-local.
-- Other RIA categories require a strong Makhachkala cue in the headline.
-- Politics/election material is filtered from automatic candidates.
-- Real source connectivity is verified only after deployment via /api/source-health.
+v2.7:
+- persistent publication journal in an isolated Supabase schema: makhachkala_live
+- unique source_url blocks duplicate publication
+- atomic claim before Telegram send
+- published / failed states
+- Telegram message_id and attempt_count are stored
+- failed attempts can be retried
+- journal API is protected by PUBLISH_SECRET
+- Supabase RPC also requires the SHA-256-derived request credential
 
-Do not enable AUTO_PUBLISH until source-health and dry-run endpoints have been checked in production and persistent deduplication is added.
+Editorial safety:
+- Makhachkala-local filtering
+- automatic politics/election filtering
+- P1-P5 prioritization
+- rich P1 summaries
+- no Telegram token or PUBLISH_SECRET in the repository
+
+AUTO_PUBLISH is OFF by default.
