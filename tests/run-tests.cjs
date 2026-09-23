@@ -7,13 +7,14 @@ const common=require("../lib/common.cjs");
 const sources=require("../lib/sources.cjs");
 const format=require("../lib/format.cjs");
 const journal=require("../lib/journal.cjs");
+const reconcileHandler=require("../api/publication-reconcile.js");
 
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.7.3 and Vercel release gate",()=>{
+test("manifest version 2.8.0 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.7.3");
+  assert.equal(pkg.version,"2.8.0");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -120,6 +121,55 @@ test("no Telegram bot token literal",()=>{
       assert.equal(req.opts.headers["x-publish-secret-sha256"],"9caf06bb4436cdbfa20af9121a626bc1093c4f54b31c0fa937957856135345b6");
       assert.match(req.opts.headers.apikey,/^sb_publishable_/);
     }finally{global.fetch=oldFetch;if(oldSecret===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldSecret;}
+  });
+
+  await asyncTest("publication health uses protected RPC",async()=>{
+    const oldFetch=global.fetch,oldSecret=process.env.PUBLISH_SECRET;
+    process.env.PUBLISH_SECRET="test-secret";
+    let req;
+    global.fetch=async(url,opts)=>{
+      req={url:String(url),opts};
+      return{ok:true,status:200,text:async()=>JSON.stringify({total:2,pending:1,published:1,failed:0,stale_pending:0,stale_minutes:15})};
+    };
+    try{
+      const out=await journal.publicationHealth(15);
+      assert.equal(out.total,2);
+      assert.match(req.url,/\/rpc\/mkl_publication_health$/);
+      assert.equal(JSON.parse(req.opts.body).p_stale_minutes,15);
+      assert.match(req.opts.headers["x-publish-secret-sha256"],/^[a-f0-9]{64}$/);
+    }finally{
+      global.fetch=oldFetch;
+      if(oldSecret===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldSecret;
+    }
+  });
+
+  await asyncTest("manual reconcile endpoint marks pending publication without sending Telegram",async()=>{
+    const oldFetch=global.fetch,oldSecret=process.env.PUBLISH_SECRET;
+    process.env.PUBLISH_SECRET="test-secret";
+    let rpcReq;
+    global.fetch=async(url,opts)=>{
+      rpcReq={url:String(url),opts};
+      return{ok:true,status:200,text:async()=>JSON.stringify({ok:true,status:"published",telegram_message_id:77,attempt_count:1})};
+    };
+    const req={method:"POST",headers:{"x-publish-secret":"test-secret"},body:{source_url:"https://example.test/news/77",status:"published",telegram_message_id:77}};
+    const state={statusCode:200,body:null,headers:{}};
+    const res={
+      setHeader:(k,v)=>{state.headers[k]=v;},
+      status:(code)=>{state.statusCode=code;return res;},
+      json:(body)=>{state.body=body;return body;}
+    };
+    try{
+      await reconcileHandler(req,res);
+      assert.equal(state.statusCode,200);
+      assert.equal(state.body.ok,true);
+      assert.match(rpcReq.url,/\/rpc\/mkl_mark_publication$/);
+      const body=JSON.parse(rpcReq.opts.body);
+      assert.equal(body.p_status,"published");
+      assert.equal(body.p_telegram_message_id,77);
+    }finally{
+      global.fetch=oldFetch;
+      if(oldSecret===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldSecret;
+    }
   });
 
   await asyncTest("RIA end-to-end keeps local nonpolitical stories",async()=>{
