@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.11.0
+Махачкала LIVE Bot v2.11.1
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,15 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.11.1:
+- fixes false P1 alerts caused by ordinary mentions of utility infrastructure
+- P1 now requires an explicit outage, restriction, emergency or safety impact
+- cleans decorative Telegram emoji/punctuation noise and avoids repeating the headline in the summary
+- adds the Minobrnauki Dagestan public Telegram source for Makhachkala education/events
+- deduplicates identical cross-source headlines
+- keeps background crime out of the regular city feed
+- AUTO_PUBLISH remains OFF
 
 v2.11.0:
 - adds the official public Telegram channel of the Makhachkala administration
