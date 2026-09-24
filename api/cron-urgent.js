@@ -5,7 +5,8 @@ const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
-const urgentWords=/авар|чс|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|электроснаб|водоснаб|газоснаб|обесточ|непогод|ливн|ветер|движение\s+(?:закрыт|огранич)|дорог[аи]\s+(?:закрыт|перекрыт)/i;
+const urgentSignal=/авар|чс\b|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|обесточ|непогод|ливн|сильн[^.!?]{0,30}ветер|движение\s+(?:закрыт|огранич)|дорог[аи]\s+(?:закрыт|перекрыт)/i;
+const explicitUtilityImpact=/(?:будет|будут|временно|планируется|ограничен[оаы]?|прекращен[оаы]?|отключен[оаы]?)[^.!?]{0,120}(?:водоснаб|электроснаб|газоснаб|подач[аи]\s+(?:вод|электр|газ)|движен)|(?:отключат|обесточат|перекроют)[^.!?]{0,120}/i;
 
 module.exports=async function handler(req,res){
   try{
@@ -21,7 +22,7 @@ module.exports=async function handler(req,res){
       fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];})
     ]);
     const candidates=uniqueBy([...ops,...cityAdmin,...mintrans],x=>x.link)
-      .filter(x=>urgentWords.test(`${x.title} ${x.description}`))
+      .filter(x=>urgentSignal.test(`${x.title} ${x.description}`)||explicitUtilityImpact.test(`${x.title} ${x.description}`))
       .filter(x=>inWindow(x.pubDate,start,now))
       .sort((a,b)=>b.pubDate-a.pubDate)
       .slice(0,1)
@@ -45,7 +46,7 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.11.0",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.11.1",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
       found:candidates.length,warnings,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
