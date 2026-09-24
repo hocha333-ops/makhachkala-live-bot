@@ -1,6 +1,6 @@
 {
   "name": "makhachkala-live-bot",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "private": true,
   "scripts": {
     "test": "node tests/run-tests.cjs",
