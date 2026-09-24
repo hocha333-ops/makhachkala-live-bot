@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
     }
     const staleMinutes=Math.max(1,Math.min(Number(req.query?.stale_minutes)||15,1440));
     const health=await publicationHealth(staleMinutes);
-    return res.status(200).json({ok:true,version:"2.11.0",health});
+    return res.status(200).json({ok:true,version:"2.11.1",health});
   }catch(e){
     return res.status(500).json({ok:false,error:e.message});
   }
