@@ -15,9 +15,9 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.10.1 and Vercel release gate",()=>{
+test("manifest version 2.10.2 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.10.1");
+  assert.equal(pkg.version,"2.10.2");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -111,6 +111,7 @@ test("GitHub scheduler workflow requests OIDC and does not depend on shared repo
   assert.match(s,/ACTIONS_ID_TOKEN_REQUEST_URL/);
   assert.doesNotMatch(s,/secrets\.CRON_SECRET/);
   assert.doesNotMatch(s,/^\s*push:\s*$/m);
+  assert.equal(s.includes("github.event_name == 'push'"),false);
   assert.match(s,/cron:\s*['"]17 \* \* \* \*['"]/);
   assert.match(s,/cron:\s*['"]7 8,13,18 \* \* \*['"]/);
   assert.match(s,/timezone:\s*['"]Europe\/Moscow['"]/);
