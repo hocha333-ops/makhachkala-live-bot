@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.9.0
+Махачкала LIVE Bot v2.9.1
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,11 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.9.1:
+- removes leftover leading punctuation after RIA datelines
+- adds regression coverage for the punctuation artifact seen in production preview
+- keeps AUTO_PUBLISH OFF
 
 v2.9.0:
 - cron endpoints accept either the existing manual PUBLISH_SECRET header or Vercel's Bearer CRON_SECRET

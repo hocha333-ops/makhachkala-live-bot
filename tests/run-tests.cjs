@@ -13,9 +13,9 @@ const auth=require("../lib/auth.cjs");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.9.0 and Vercel release gate",()=>{
+test("manifest version 2.9.1 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.9.0");
+  assert.equal(pkg.version,"2.9.1");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -37,6 +37,12 @@ test("HTML entities are normalized before summaries",()=>{
   const out=common.stripHtml(input);
   assert.equal(out,"Текст «Устар» и ещё — тест");
   assert.doesNotMatch(out,/&nbsp;|&#160;|&#xA0;/i);
+});
+
+test("RIA dateline cleanup removes leftover leading punctuation",()=>{
+  const text='МАХАЧКАЛА, 24 сентября – РИА «Дагестан».. Блицтурнир прошёл в городе.';
+  assert.equal(common.cleanSourceDateline(text),"Блицтурнир прошёл в городе.");
+  assert.equal(common.cleanSourceDateline(". Блицтурнир прошёл в городе."),"Блицтурнир прошёл в городе.");
 });
 
 test("outage P1 outranks culture P3",()=>{
