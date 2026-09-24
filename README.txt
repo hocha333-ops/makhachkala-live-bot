@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.11.1
+Махачкала LIVE Bot v2.11.2
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,12 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.11.2:
+- fixes false P1 alerts caused by words like "безопасность" in ordinary planning/improvement stories
+- urgent classification now requires a real incident, explicit service restriction, road closure or direct outage action
+- keeps the expanded official source set from v2.11.1
+- AUTO_PUBLISH remains OFF
 
 v2.11.1:
 - fixes false P1 alerts caused by ordinary mentions of utility infrastructure
