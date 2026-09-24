@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
     }
     const limit=Math.max(1,Math.min(Number(req.query?.limit)||50,200));
     const rows=await recentPublications(limit);
-    return res.status(200).json({ok:true,version:"2.10.2",count:Array.isArray(rows)?rows.length:0,rows});
+    return res.status(200).json({ok:true,version:"2.11.0",count:Array.isArray(rows)?rows.length:0,rows});
   }catch(e){
     return res.status(500).json({ok:false,error:e.message});
   }
