@@ -27,9 +27,17 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
+          if ! curl --fail-with-body --silent --show-error --max-time 55 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            https://project-rugm4.vercel.app/api/cron-urgent
+            https://project-rugm4.vercel.app/api/cron-urgent; then
+            if [[ "${CRON_SECRET}" == "Bearer "* ]]; then
+              curl --fail-with-body --silent --show-error --max-time 55 \
+                -H "Authorization: ${CRON_SECRET}" \
+                https://project-rugm4.vercel.app/api/cron-urgent
+            else
+              exit 1
+            fi
+          fi
 
   editorial:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '7 8,13,18 * * *'
@@ -44,6 +52,14 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
+          if ! curl --fail-with-body --silent --show-error --max-time 55 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            https://project-rugm4.vercel.app/api/cron-editorial
+            https://project-rugm4.vercel.app/api/cron-editorial; then
+            if [[ "${CRON_SECRET}" == "Bearer "* ]]; then
+              curl --fail-with-body --silent --show-error --max-time 55 \
+                -H "Authorization: ${CRON_SECRET}" \
+                https://project-rugm4.vercel.app/api/cron-editorial
+            else
+              exit 1
+            fi
+          fi
