@@ -1,11 +1,11 @@
 const {sendTelegramMessage}=require("../lib/telegram.cjs");
-const {fetchMchsFeed,filterMchsLocal}=require("../lib/sources.cjs");
+const {fetchMchsFeed,filterMchsLocal,fetchMakhachkalaAdminTelegram,fetchMintransTelegram}=require("../lib/sources.cjs");
 const {previousHourBoundary,inWindow,uniqueBy}=require("../lib/common.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
-const urgentWords=/авар|чс|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|электроснаб|водоснаб|газоснаб|обесточ|непогод|ливн|ветер/i;
+const urgentWords=/авар|чс|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|электроснаб|водоснаб|газоснаб|обесточ|непогод|ливн|ветер|движение\s+(?:закрыт|огранич)|дорог[аи]\s+(?:закрыт|перекрыт)/i;
 
 module.exports=async function handler(req,res){
   try{
@@ -14,13 +14,16 @@ module.exports=async function handler(req,res){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
     const now=new Date(),start=previousHourBoundary(now);
-    let sourceError=null;
-    const ops=await fetchMchsFeed("/deyatelnost/press-centr/operativnaya-informaciya/rss","МЧС Дагестана")
-      .then(filterMchsLocal).catch(e=>{sourceError=e.message;return [];});
-    const candidates=uniqueBy(ops,x=>x.link)
+    const warnings=[];
+    const [ops,cityAdmin,mintrans]=await Promise.all([
+      fetchMchsFeed("/deyatelnost/press-centr/operativnaya-informaciya/rss","МЧС Дагестана").then(filterMchsLocal).catch(e=>{warnings.push(`MCHS: ${e.message}`);return [];}),
+      fetchMakhachkalaAdminTelegram().catch(e=>{warnings.push(`CITY_ADMIN_TG: ${e.message}`);return [];}),
+      fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];})
+    ]);
+    const candidates=uniqueBy([...ops,...cityAdmin,...mintrans],x=>x.link)
       .filter(x=>urgentWords.test(`${x.title} ${x.description}`))
       .filter(x=>inWindow(x.pubDate,start,now))
-      .sort((a,b)=>a.pubDate-b.pubDate)
+      .sort((a,b)=>b.pubDate-a.pubDate)
       .slice(0,1)
       .map(x=>Object.assign({},x,{priority:"P1",score:100,priorityReason:"Срочная оперативная информация"}));
     const auto=process.env.AUTO_PUBLISH==="true";
@@ -42,9 +45,9 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.10.2",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.11.0",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
-      found:candidates.length,warning:sourceError,
+      found:candidates.length,warnings,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
       published,skipped
     });
