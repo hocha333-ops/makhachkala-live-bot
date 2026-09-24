@@ -45,10 +45,11 @@ Editorial safety:
 - rich P1 summaries
 - no Telegram token or PUBLISH_SECRET in the repository
 
-Production schedules:
-- urgent check: hourly at minute 00
-- editorial checks: 08:00, 13:00, 18:00 Europe/Moscow (05:00, 10:00, 15:00 UTC)
-- Vercel Cron authenticates with CRON_SECRET
+Scheduler target:
+- urgent check: hourly
+- editorial checks: 08:00, 13:00, 18:00 Europe/Moscow
+- Vercel Hobby cannot run these frequencies; external scheduler is required unless the project moves to Pro
+- cron endpoints authenticate with CRON_SECRET
 - AUTO_PUBLISH stays OFF during schedule verification
 
 AUTO_PUBLISH is OFF by default.

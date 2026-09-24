@@ -95,16 +95,6 @@ test("RIA locality and politics filters",()=>{
   assert.equal(sources.isRiaPolitical("https://riadagestan.ru/news/society/test","В Махачкале стартовало голосование на выборах"),true);
 });
 
-test("Vercel cron schedules match Moscow 08:00/13:00/18:00 plus hourly urgent",()=>{
-  const cfg=JSON.parse(fs.readFileSync(path.join(root,"vercel.json"),"utf8"));
-  assert.deepEqual(cfg.crons,[
-    {path:"/api/cron-urgent",schedule:"0 * * * *"},
-    {path:"/api/cron-editorial",schedule:"0 5 * * *"},
-    {path:"/api/cron-editorial",schedule:"0 10 * * *"},
-    {path:"/api/cron-editorial",schedule:"0 15 * * *"}
-  ]);
-});
-
 test("cron endpoints support separate CRON_SECRET without weakening publish auth",()=>{
   const oldPublish=process.env.PUBLISH_SECRET,oldCron=process.env.CRON_SECRET;
   process.env.PUBLISH_SECRET="publish-test-secret";
