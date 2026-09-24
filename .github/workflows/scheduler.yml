@@ -2,8 +2,6 @@ name: Makhachkala LIVE scheduler
 
 on:
   workflow_dispatch:
-  push:
-    branches: [release/github-scheduler]
   schedule:
     - cron: '17 * * * *'
       timezone: 'Europe/Moscow'
@@ -15,7 +13,7 @@ permissions:
 
 jobs:
   urgent:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '17 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -27,20 +25,12 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if ! curl --fail-with-body --silent --show-error --max-time 55 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            https://project-rugm4.vercel.app/api/cron-urgent; then
-            if [[ "${CRON_SECRET}" == "Bearer "* ]]; then
-              curl --fail-with-body --silent --show-error --max-time 55 \
-                -H "Authorization: ${CRON_SECRET}" \
-                https://project-rugm4.vercel.app/api/cron-urgent
-            else
-              exit 1
-            fi
-          fi
+            https://project-rugm4.vercel.app/api/cron-urgent
 
   editorial:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '7 8,13,18 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 8,13,18 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -52,14 +42,6 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if ! curl --fail-with-body --silent --show-error --max-time 55 \
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            https://project-rugm4.vercel.app/api/cron-editorial; then
-            if [[ "${CRON_SECRET}" == "Bearer "* ]]; then
-              curl --fail-with-body --silent --show-error --max-time 55 \
-                -H "Authorization: ${CRON_SECRET}" \
-                https://project-rugm4.vercel.app/api/cron-editorial
-            else
-              exit 1
-            fi
-          fi
+            https://project-rugm4.vercel.app/api/cron-editorial
