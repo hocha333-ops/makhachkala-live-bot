@@ -16,9 +16,9 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.11.2 and Vercel release gate",()=>{
+test("manifest version 2.11.3 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.11.2");
+  assert.equal(pkg.version,"2.11.3");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -87,6 +87,27 @@ test("word безопасностью does not match urgent danger signal",()=>{
     description:"Работы направлены на повышение безопасности и обновление объектов водоснабжения."
   };
   assert.equal(common.isUrgentImpact(item),false);
+});
+
+test("known non-urgent live headlines never become P1 even when body mentions utility restrictions",()=>{
+  const cases=[
+    {title:"Во дворе на проспекте Имама Шамиля продолжается благоустройство",description:"В рамках работ обновляют сети водоснабжения. На соседнем участке ранее было ограничено водоснабжение."},
+    {title:"На очередной сессии городского Собрания депутатов заместитель главы администрации Тимур Галбацов представил проект изменений в Правила землепользования и застройки Махачкалы",description:"Проект регулирует городскую инфраструктуру, включая водоснабжение; в справочном тексте упомянуто ограничение водоснабжения."},
+    {title:"В Махачкале провели рейды по абонентам с задолженностью за газ свыше 100 тысяч рублей",description:"Рейды проходят по должникам. При наличии оснований возможно ограничение газоснабжения."}
+  ];
+  for(const item of cases){
+    const cls=common.classifyEditorial(item);
+    assert.notEqual(cls.priority,"P1",item.title);
+    assert.doesNotMatch(common.buildEditorialSummary({...item,...cls}),/ожидается ограничение/i);
+  }
+});
+
+test("strong urgent title still overrides non-urgent context",()=>{
+  const item={title:"Из-за аварии часть Махачкалы останется без воды",description:"Работы коммунальных служб связаны с аварийным повреждением водовода."};
+  assert.equal(common.isUrgentImpact(item),true);
+  const cls=common.classifyEditorial(item);
+  assert.equal(cls.priority,"P1");
+  assert.match(common.buildEditorialSummary({...item,...cls}),/ограничение водоснабжения/i);
 });
 
 test("explicit utility restriction remains P1",()=>{
