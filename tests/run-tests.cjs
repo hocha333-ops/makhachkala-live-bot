@@ -15,9 +15,9 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.10.0 and Vercel release gate",()=>{
+test("manifest version 2.10.1 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.10.0");
+  assert.equal(pkg.version,"2.10.1");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -110,8 +110,20 @@ test("GitHub scheduler workflow requests OIDC and does not depend on shared repo
   assert.match(s,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
   assert.match(s,/ACTIONS_ID_TOKEN_REQUEST_URL/);
   assert.doesNotMatch(s,/secrets\.CRON_SECRET/);
+  assert.doesNotMatch(s,/^\s*push:\s*$/m);
+  assert.match(s,/cron:\s*['"]17 \* \* \* \*['"]/);
+  assert.match(s,/cron:\s*['"]7 8,13,18 \* \* \*['"]/);
+  assert.match(s,/timezone:\s*['"]Europe\/Moscow['"]/);
   assert.match(s,/\/api\/cron-urgent/);
   assert.match(s,/\/api\/cron-editorial/);
+});
+
+test("production cron OIDC only trusts the main branch ref",()=>{
+  for(const file of ["api/cron-editorial.js","api/cron-urgent.js"]){
+    const src=fs.readFileSync(path.join(root,file),"utf8");
+    assert.match(src,/allowedRefs:\["refs\/heads\/main"\]/);
+    assert.doesNotMatch(src,/release\/github-oidc|release\/v2\.10\.1/);
+  }
 });
 
 test("cron endpoints support separate CRON_SECRET without weakening publish auth",()=>{
