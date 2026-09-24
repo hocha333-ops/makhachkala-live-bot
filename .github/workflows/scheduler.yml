@@ -2,6 +2,8 @@ name: Makhachkala LIVE scheduler
 
 on:
   workflow_dispatch:
+  push:
+    branches: [release/github-scheduler]
   schedule:
     - cron: '17 * * * *'
       timezone: 'Europe/Moscow'
@@ -13,7 +15,7 @@ permissions:
 
 jobs:
   urgent:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '17 * * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -30,7 +32,7 @@ jobs:
             https://project-rugm4.vercel.app/api/cron-urgent
 
   editorial:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 8,13,18 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '7 8,13,18 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
