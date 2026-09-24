@@ -9,13 +9,15 @@ const format=require("../lib/format.cjs");
 const journal=require("../lib/journal.cjs");
 const reconcileHandler=require("../api/publication-reconcile.js");
 const auth=require("../lib/auth.cjs");
+const oidc=require("../lib/github-oidc.cjs");
+const {generateKeyPairSync,sign}=require("node:crypto");
 
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.9.1 and Vercel release gate",()=>{
+test("manifest version 2.10.0 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.9.1");
+  assert.equal(pkg.version,"2.10.0");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -101,6 +103,17 @@ test("RIA locality and politics filters",()=>{
   assert.equal(sources.isRiaPolitical("https://riadagestan.ru/news/society/test","В Махачкале стартовало голосование на выборах"),true);
 });
 
+test("GitHub scheduler workflow requests OIDC and does not depend on shared repository secret",()=>{
+  const s=fs.readFileSync(path.join(root,".github/workflows/scheduler.yml"),"utf8");
+  assert.match(s,/id-token:\s*write/);
+  assert.match(s,/audience=makhachkala-live-vercel/);
+  assert.match(s,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
+  assert.match(s,/ACTIONS_ID_TOKEN_REQUEST_URL/);
+  assert.doesNotMatch(s,/secrets\.CRON_SECRET/);
+  assert.match(s,/\/api\/cron-urgent/);
+  assert.match(s,/\/api\/cron-editorial/);
+});
+
 test("cron endpoints support separate CRON_SECRET without weakening publish auth",()=>{
   const oldPublish=process.env.PUBLISH_SECRET,oldCron=process.env.CRON_SECRET;
   process.env.PUBLISH_SECRET="publish-test-secret";
@@ -132,6 +145,43 @@ test("no Telegram bot token literal",()=>{
 });
 
 (async()=>{
+  await asyncTest("GitHub OIDC verification checks signature and trusted claims",async()=>{
+    oidc.resetJwksCache();
+    const {privateKey,publicKey}=generateKeyPairSync("rsa",{modulusLength:2048});
+    const jwk=publicKey.export({format:"jwk"});
+    jwk.kid="test-kid"; jwk.alg="RS256"; jwk.use="sig";
+
+    const makeToken=(overrides={})=>{
+      const now=Math.floor(Date.now()/1000);
+      const header={alg:"RS256",kid:"test-kid",typ:"JWT"};
+      const payload={
+        iss:oidc.ISSUER,
+        aud:oidc.AUDIENCE,
+        exp:now+300,
+        nbf:now-10,
+        iat:now-10,
+        repository:oidc.REPOSITORY,
+        repository_id:oidc.REPOSITORY_ID,
+        repository_owner:oidc.REPOSITORY_OWNER,
+        repository_owner_id:oidc.REPOSITORY_OWNER_ID,
+        ref:"refs/heads/main",
+        workflow:oidc.WORKFLOW_NAME,
+        workflow_ref:`${oidc.REPOSITORY}/${oidc.WORKFLOW_PATH}@refs/heads/main`,
+        event_name:"schedule",
+        ...overrides
+      };
+      const enc=x=>Buffer.from(JSON.stringify(x)).toString("base64url");
+      const input=`${enc(header)}.${enc(payload)}`;
+      const signature=sign("RSA-SHA256",Buffer.from(input),privateKey).toString("base64url");
+      return `${input}.${signature}`;
+    };
+
+    const fetchFn=async()=>({ok:true,status:200,json:async()=>({keys:[jwk]})});
+    assert.equal(await oidc.verifyGitHubOidcToken(makeToken(),{allowedRefs:["refs/heads/main"],fetchFn}),true);
+    assert.equal(await oidc.verifyGitHubOidcToken(makeToken({repository:"other/repo"}),{allowedRefs:["refs/heads/main"],fetchFn}),false);
+    assert.equal(await oidc.verifyGitHubOidcToken(makeToken({ref:"refs/heads/evil",workflow_ref:`${oidc.REPOSITORY}/${oidc.WORKFLOW_PATH}@refs/heads/evil`}),{allowedRefs:["refs/heads/main"],fetchFn}),false);
+  });
+
   await asyncTest("journal hashes secret before protected RPC",async()=>{
     const oldFetch=global.fetch,oldSecret=process.env.PUBLISH_SECRET;
     process.env.PUBLISH_SECRET="test-secret";

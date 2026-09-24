@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.9.1
+Махачкала LIVE Bot v2.10.0
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,13 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.10.0:
+- GitHub Actions scheduler authenticates with short-lived GitHub OIDC tokens
+- validates GitHub issuer, audience, repository and owner IDs, workflow path, branch ref, expiry and RSA signature
+- removes the scheduler's dependency on synchronizing CRON_SECRET between GitHub and Vercel
+- CRON_SECRET remains supported as a fallback for Vercel/manual scheduler use
+- AUTO_PUBLISH remains OFF during scheduler verification
 
 v2.9.1:
 - removes leftover leading punctuation after RIA datelines

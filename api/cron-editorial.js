@@ -3,12 +3,12 @@ const {collectEditorialCandidates}=require("../lib/editorial.cjs");
 const {formatEditorial}=require("../lib/format.cjs");
 const {buildEditorialSummary}=require("../lib/common.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
-const {isPublishOrCronAuthorized}=require("../lib/auth.cjs");
+const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
 module.exports=async function handler(req,res){
   try{
     if(req.method!=="GET") return res.status(405).json({ok:false,error:"GET only"});
-    if(!isPublishOrCronAuthorized(req)){
+    if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main","refs/heads/release/github-oidc"]}))){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
     const result=await collectEditorialCandidates(new Date(),2);
@@ -34,7 +34,7 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.9.1",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.10.0",mode:auto?"publish":"dry-run",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
       found:result.candidates.length,warnings:result.warnings,
       candidates:result.candidates.map(x=>({

@@ -1,0 +1,44 @@
+name: Makhachkala LIVE scheduler
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [release/github-oidc]
+  schedule:
+    - cron: '17 * * * *'
+      timezone: 'Europe/Moscow'
+    - cron: '7 8,13,18 * * *'
+      timezone: 'Europe/Moscow'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  urgent:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '17 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run urgent endpoint with GitHub OIDC
+        shell: bash
+        run: |
+          TOKEN="$(curl --fail-with-body --silent --show-error --max-time 20             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=makhachkala-live-vercel" | jq -r '.value')"
+          test -n "$TOKEN"
+          test "$TOKEN" != "null"
+          echo "::add-mask::$TOKEN"
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55             -H "Authorization: Bearer ${TOKEN}"             https://project-rugm4.vercel.app/api/cron-urgent
+
+  editorial:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '7 8,13,18 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run editorial endpoint with GitHub OIDC
+        shell: bash
+        run: |
+          TOKEN="$(curl --fail-with-body --silent --show-error --max-time 20             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=makhachkala-live-vercel" | jq -r '.value')"
+          test -n "$TOKEN"
+          test "$TOKEN" != "null"
+          echo "::add-mask::$TOKEN"
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55             -H "Authorization: Bearer ${TOKEN}"             https://project-rugm4.vercel.app/api/cron-editorial
