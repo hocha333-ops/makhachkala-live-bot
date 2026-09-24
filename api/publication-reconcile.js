@@ -35,7 +35,7 @@ module.exports=async function handler(req,res){
     if(result?.ok===false&&result?.reason==="not_found"){
       return res.status(404).json({ok:false,error:"publication not found"});
     }
-    return res.status(200).json({ok:true,version:"2.11.2",result});
+    return res.status(200).json({ok:true,version:"2.11.3",result});
   }catch(e){
     return res.status(500).json({ok:false,error:e.message});
   }
