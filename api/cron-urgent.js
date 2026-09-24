@@ -44,7 +44,7 @@ module.exports=async function handler(req,res){
       }
     }
     return res.status(200).json({
-      ok:true,version:"2.11.2",mode:auto?"publish":"dry-run",
+      ok:true,version:"2.11.3",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
       found:candidates.length,warnings,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
