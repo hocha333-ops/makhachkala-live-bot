@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.10.1
+Махачкала LIVE Bot v2.10.2
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,12 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.10.2:
+- removes the last residual push condition from the production scheduler
+- adds regression coverage requiring schedule/manual-only execution
+- OIDC scheduler remains restricted to refs/heads/main
+- AUTO_PUBLISH remains OFF
 
 v2.10.1:
 - production OIDC scheduler accepts only refs/heads/main
