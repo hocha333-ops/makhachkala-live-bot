@@ -3,7 +3,7 @@ module.exports = function handler(req,res){
   res.status(200).json({
     ok:true,
     service:"makhachkala-live-bot",
-    version:"2.10.2",
+    version:"2.11.0",
     telegramTokenConfigured:Boolean(process.env.TELEGRAM_BOT_TOKEN),
     channelConfigured:Boolean(process.env.TELEGRAM_CHANNEL),
     publishSecretConfigured:Boolean(process.env.PUBLISH_SECRET),
