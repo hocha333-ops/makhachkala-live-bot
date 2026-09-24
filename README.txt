@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.10.0
+Махачкала LIVE Bot v2.10.1
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,12 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.10.1:
+- production OIDC scheduler accepts only refs/heads/main
+- temporary release-branch push trigger removed
+- scheduler target: hourly urgent plus 08:07/13:07/18:07 Europe/Moscow
+- AUTO_PUBLISH remains OFF for scheduled dry-run observation
 
 v2.10.0:
 - GitHub Actions scheduler authenticates with short-lived GitHub OIDC tokens
@@ -61,7 +67,7 @@ Scheduler target:
 - urgent check: hourly
 - editorial checks: 08:00, 13:00, 18:00 Europe/Moscow
 - Vercel Hobby cannot run these frequencies; external scheduler is required unless the project moves to Pro
-- cron endpoints authenticate with CRON_SECRET
+- GitHub scheduler authenticates with short-lived OIDC tokens; CRON_SECRET remains a fallback
 - AUTO_PUBLISH stays OFF during schedule verification
 
 AUTO_PUBLISH is OFF by default.
