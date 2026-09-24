@@ -10,14 +10,15 @@ const journal=require("../lib/journal.cjs");
 const reconcileHandler=require("../api/publication-reconcile.js");
 const auth=require("../lib/auth.cjs");
 const oidc=require("../lib/github-oidc.cjs");
+const editorial=require("../lib/editorial.cjs");
 const {generateKeyPairSync,sign}=require("node:crypto");
 
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.10.2 and Vercel release gate",()=>{
+test("manifest version 2.11.0 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.10.2");
+  assert.equal(pkg.version,"2.11.0");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -47,6 +48,19 @@ test("RIA dateline cleanup removes leftover leading punctuation",()=>{
   assert.equal(common.cleanSourceDateline(". Блицтурнир прошёл в городе."),"Блицтурнир прошёл в городе.");
 });
 
+test("official Telegram parser extracts title date and canonical link",()=>{
+  const html=`<div class="tgme_widget_message" data-post="makhachkalaofficial/123"><div class="tgme_widget_message_text js-message_text">🚧 В Махачкале ремонтируют улицу Ботлихскую.<br>Работы идут на участке 1,46 км.</div><a class="tgme_widget_message_date"><time datetime="2026-09-24T09:07:00+00:00"></time></a></div><div class="tgme_widget_message" data-post="makhachkalaofficial/124"><div class="tgme_widget_message_text js-message_text">В Дербенте открыли объект.</div><time datetime="2026-09-24T10:00:00+00:00"></time></div>`;
+  const posts=sources.extractTelegramPosts(html,"makhachkalaofficial","Администрация Махачкалы");
+  assert.equal(posts.length,2);
+  assert.match(posts[0].title,/Махачкале ремонтируют улицу Ботлихскую/);
+  assert.equal(posts[0].link,"https://t.me/makhachkalaofficial/123");
+  assert.equal(posts[0].pubDate.toISOString(),"2026-09-24T09:07:00.000Z");
+});
+
+test("background crime is excluded while immediate public safety is retained",()=>{
+  assert.equal(editorial.isBackgroundCrime({title:"В Махачкале завершили расследование уголовного дела",description:"Обвиняемого направили в суд"}),true);
+  assert.equal(editorial.isBackgroundCrime({title:"В Махачкале разыскивают пропавшего ребенка",description:"Полиция просит жителей сообщить информацию"}),false);
+});
 test("outage P1 outranks culture P3",()=>{
   const outage=common.classifyEditorial({title:"Более 70 улиц Махачкалы обесточат из-за ремонта трансформатора"});
   const culture=common.classifyEditorial({title:"В столице Дагестана начал работу детский центр ремесленных традиций «Устар»",description:"В Махачкале открылся детский культурно-просветительский центр. Новая площадка позволит детям изучать традиционные ремесла."});
@@ -256,6 +270,16 @@ test("no Telegram bot token literal",()=>{
       global.fetch=oldFetch;
       if(oldSecret===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldSecret;
     }
+  });
+
+  await asyncTest("official Telegram channel keeps local nonpolitical posts only",async()=>{
+    const oldFetch=global.fetch;
+    const html=`<div data-post="makhachkalaofficial/201"><div class="tgme_widget_message_text">В Махачкале ремонтируют улицу Ботлихскую</div><time datetime="2026-09-24T09:07:00Z"></time></div><div data-post="makhachkalaofficial/202"><div class="tgme_widget_message_text">В Махачкале началось голосование на выборах</div><time datetime="2026-09-24T09:08:00Z"></time></div><div data-post="makhachkalaofficial/203"><div class="tgme_widget_message_text">В Дербенте ремонтируют улицу</div><time datetime="2026-09-24T09:09:00Z"></time></div>`;
+    global.fetch=async()=>({ok:true,status:200,text:async()=>html});
+    try{
+      const items=await sources.fetchTelegramPublicChannel("makhachkalaofficial","Администрация Махачкалы",{localOnly:true});
+      assert.deepEqual(items.map(x=>x.link),["https://t.me/makhachkalaofficial/201"]);
+    }finally{global.fetch=oldFetch;}
   });
 
   await asyncTest("RIA end-to-end keeps local nonpolitical stories",async()=>{
