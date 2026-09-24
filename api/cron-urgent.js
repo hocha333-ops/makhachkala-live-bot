@@ -1,12 +1,10 @@
 const {sendTelegramMessage}=require("../lib/telegram.cjs");
 const {fetchMchsFeed,filterMchsLocal,fetchMakhachkalaAdminTelegram,fetchMintransTelegram}=require("../lib/sources.cjs");
-const {previousHourBoundary,inWindow,uniqueBy}=require("../lib/common.cjs");
+const {previousHourBoundary,inWindow,uniqueBy,isUrgentImpact}=require("../lib/common.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
-const urgentSignal=/авар|чс\b|пожар|взрыв|отключ|предупреж|шторм|опасност|эвакуац|перекры|обесточ|непогод|ливн|сильн[^.!?]{0,30}ветер|движение\s+(?:закрыт|огранич)|дорог[аи]\s+(?:закрыт|перекрыт)/i;
-const explicitUtilityImpact=/(?:будет|будут|временно|планируется|ограничен[оаы]?|прекращен[оаы]?|отключен[оаы]?)[^.!?]{0,120}(?:водоснаб|электроснаб|газоснаб|подач[аи]\s+(?:вод|электр|газ)|движен)|(?:отключат|обесточат|перекроют)[^.!?]{0,120}/i;
 
 module.exports=async function handler(req,res){
   try{
@@ -22,7 +20,7 @@ module.exports=async function handler(req,res){
       fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];})
     ]);
     const candidates=uniqueBy([...ops,...cityAdmin,...mintrans],x=>x.link)
-      .filter(x=>urgentSignal.test(`${x.title} ${x.description}`)||explicitUtilityImpact.test(`${x.title} ${x.description}`))
+      .filter(x=>isUrgentImpact(x))
       .filter(x=>inWindow(x.pubDate,start,now))
       .sort((a,b)=>b.pubDate-a.pubDate)
       .slice(0,1)
