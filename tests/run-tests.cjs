@@ -16,9 +16,9 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.11.0 and Vercel release gate",()=>{
+test("manifest version 2.11.1 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.11.0");
+  assert.equal(pkg.version,"2.11.1");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -61,6 +61,42 @@ test("background crime is excluded while immediate public safety is retained",()
   assert.equal(editorial.isBackgroundCrime({title:"В Махачкале завершили расследование уголовного дела",description:"Обвиняемого направили в суд"}),true);
   assert.equal(editorial.isBackgroundCrime({title:"В Махачкале разыскивают пропавшего ребенка",description:"Полиция просит жителей сообщить информацию"}),false);
 });
+test("Telegram cleanup removes decorative emoji noise and duplicate leading punctuation",()=>{
+  const raw="🌳 🌳 🌳 . 🌳 . . В Махачкале продолжается благоустройство двора. Работы идут по графику.";
+  assert.equal(sources.normalizeTelegramText(raw),"В Махачкале продолжается благоустройство двора. Работы идут по графику.");
+});
+
+test("utility-sector mentions alone do not create false P1",()=>{
+  const planning=common.classifyEditorial({
+    title:"Изменения в Правила землепользования и застройки Махачкалы",
+    description:"Документ уточняет размещение объектов водоснабжения, дорог и другой городской инфраструктуры."
+  });
+  const yard=common.classifyEditorial({
+    title:"Во дворе на проспекте Имама Шамиля продолжается благоустройство",
+    description:"Проект включает обновление сетей водоснабжения и озеленение территории."
+  });
+  assert.notEqual(planning.priority,"P1");
+  assert.equal(planning.priority,"P2");
+  assert.notEqual(yard.priority,"P1");
+  assert.equal(yard.priority,"P2");
+});
+
+test("explicit utility restriction remains P1",()=>{
+  const item={
+    title:"В Махачкале проведут ремонт сетей",
+    description:"24 сентября с 09:00 до 15:00 будет временно ограничено водоснабжение на 20 улицах."
+  };
+  assert.equal(common.isUrgentImpact(item),true);
+  assert.equal(common.classifyEditorial(item).priority,"P1");
+});
+
+test("normalized title key deduplicates identical cross-source headlines",()=>{
+  assert.equal(
+    editorial.storyTitleKey({title:"В Махачкале преобразовали Управление муниципального жилищного контроля"}),
+    editorial.storyTitleKey({title:"В Махачкале преобразовали управление муниципального жилищного контроля!"})
+  );
+});
+
 test("outage P1 outranks culture P3",()=>{
   const outage=common.classifyEditorial({title:"Более 70 улиц Махачкалы обесточат из-за ремонта трансформатора"});
   const culture=common.classifyEditorial({title:"В столице Дагестана начал работу детский центр ремесленных традиций «Устар»",description:"В Махачкале открылся детский культурно-просветительский центр. Новая площадка позволит детям изучать традиционные ремесла."});
@@ -270,6 +306,19 @@ test("no Telegram bot token literal",()=>{
       global.fetch=oldFetch;
       if(oldSecret===undefined)delete process.env.PUBLISH_SECRET;else process.env.PUBLISH_SECRET=oldSecret;
     }
+  });
+
+  await asyncTest("education Telegram wrapper uses Minobrnauki channel and keeps Makhachkala item",async()=>{
+    const oldFetch=global.fetch;
+    let requested="";
+    const html='<div data-post="minobrnauki_rd/501"><div class="tgme_widget_message_text">В Махачкале пройдет республиканский родительский форум</div><time datetime="2026-09-24T09:00:00Z"></time></div>';
+    global.fetch=async url=>{requested=String(url);return{ok:true,status:200,text:async()=>html};};
+    try{
+      const items=await sources.fetchMinobrnaukiTelegram();
+      assert.equal(requested,"https://t.me/s/minobrnauki_rd");
+      assert.equal(items.length,1);
+      assert.equal(items[0].link,"https://t.me/minobrnauki_rd/501");
+    }finally{global.fetch=oldFetch;}
   });
 
   await asyncTest("official Telegram channel keeps local nonpolitical posts only",async()=>{
