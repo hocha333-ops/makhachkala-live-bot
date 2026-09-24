@@ -28,7 +28,7 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55             -H "Authorization: Bearer ${TOKEN}"             https://project-rugm4.vercel.app/api/cron-urgent
 
   editorial:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.schedule == '7 8,13,18 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 8,13,18 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
