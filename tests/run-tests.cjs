@@ -16,9 +16,9 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
-test("manifest version 2.11.1 and Vercel release gate",()=>{
+test("manifest version 2.11.2 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
-  assert.equal(pkg.version,"2.11.1");
+  assert.equal(pkg.version,"2.11.2");
   assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
@@ -66,19 +66,27 @@ test("Telegram cleanup removes decorative emoji noise and duplicate leading punc
   assert.equal(sources.normalizeTelegramText(raw),"В Махачкале продолжается благоустройство двора. Работы идут по графику.");
 });
 
-test("utility-sector mentions alone do not create false P1",()=>{
+test("utility and safety context alone do not create false P1",()=>{
   const planning=common.classifyEditorial({
     title:"Изменения в Правила землепользования и застройки Махачкалы",
-    description:"Документ уточняет размещение объектов водоснабжения, дорог и другой городской инфраструктуры."
+    description:"Документ уточняет размещение объектов водоснабжения, дорог и требования безопасности городской инфраструктуры."
   });
   const yard=common.classifyEditorial({
     title:"Во дворе на проспекте Имама Шамиля продолжается благоустройство",
-    description:"Проект включает обновление сетей водоснабжения и озеленение территории."
+    description:"Проект включает обновление сетей водоснабжения, освещение и повышение безопасности территории."
   });
   assert.notEqual(planning.priority,"P1");
   assert.equal(planning.priority,"P2");
   assert.notEqual(yard.priority,"P1");
   assert.equal(yard.priority,"P2");
+});
+
+test("word безопасностью does not match urgent danger signal",()=>{
+  const item={
+    title:"Благоустройство общественной территории",
+    description:"Работы направлены на повышение безопасности и обновление объектов водоснабжения."
+  };
+  assert.equal(common.isUrgentImpact(item),false);
 });
 
 test("explicit utility restriction remains P1",()=>{
