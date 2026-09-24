@@ -1,4 +1,4 @@
-Махачкала LIVE Bot v2.10.2
+Махачкала LIVE Bot v2.11.0
 
 Release gate:
 - GitHub Actions: npm test
@@ -6,6 +6,14 @@ Release gate:
 - Vercel preview deployment must be READY
 - source-health and editorial preview are checked again after Production deployment
 - AUTO_PUBLISH stays OFF until the final publication test
+
+v2.11.0:
+- adds the official public Telegram channel of the Makhachkala administration
+- adds the Dagestan transport ministry public Telegram channel
+- includes those sources in editorial and urgent collection
+- filters background criminal-case/investigation stories from the regular city feed while retaining immediate public-safety alerts
+- source-health reports the new sources separately
+- AUTO_PUBLISH remains OFF
 
 v2.10.2:
 - removes the last residual push condition from the production scheduler
