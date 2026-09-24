@@ -1,0 +1,47 @@
+name: Makhachkala LIVE scheduler
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+      timezone: 'Europe/Moscow'
+    - cron: '7 8,13,18 * * *'
+      timezone: 'Europe/Moscow'
+
+permissions:
+  contents: read
+
+jobs:
+  urgent:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify scheduler secret
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: test -n "$CRON_SECRET"
+      - name: Run urgent dry-run or publish mode configured in Vercel
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://project-rugm4.vercel.app/api/cron-urgent
+
+  editorial:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 8,13,18 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify scheduler secret
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: test -n "$CRON_SECRET"
+      - name: Run editorial dry-run or publish mode configured in Vercel
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 55 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://project-rugm4.vercel.app/api/cron-editorial

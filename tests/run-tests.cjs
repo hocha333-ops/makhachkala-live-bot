@@ -101,6 +101,18 @@ test("RIA locality and politics filters",()=>{
   assert.equal(sources.isRiaPolitical("https://riadagestan.ru/news/society/test","В Махачкале стартовало голосование на выборах"),true);
 });
 
+test("GitHub scheduler is secret-backed and uses off-peak minute offsets",()=>{
+  const s=fs.readFileSync(path.join(root,".github/workflows/scheduler.yml"),"utf8");
+  assert.match(s,/cron:\s*['"]17 \* \* \* \*['"]/);
+  assert.match(s,/cron:\s*['"]7 8,13,18 \* \* \*['"]/);
+  assert.match(s,/timezone:\s*['"]Europe\/Moscow['"]/);
+  assert.match(s,/secrets\.CRON_SECRET/);
+  assert.match(s,/Authorization: Bearer \\?\$\{CRON_SECRET\}/);
+  assert.match(s,/\/api\/cron-urgent/);
+  assert.match(s,/\/api\/cron-editorial/);
+  assert.doesNotMatch(s,/AUTO_PUBLISH\s*=\s*true/);
+});
+
 test("cron endpoints support separate CRON_SECRET without weakening publish auth",()=>{
   const oldPublish=process.env.PUBLISH_SECRET,oldCron=process.env.CRON_SECRET;
   process.env.PUBLISH_SECRET="publish-test-secret";

@@ -57,4 +57,12 @@ Scheduler target:
 - cron endpoints authenticate with CRON_SECRET
 - AUTO_PUBLISH stays OFF during schedule verification
 
+GitHub scheduler staging:
+- urgent: minute 17 of every hour
+- editorial: 08:07, 13:07, 18:07 Europe/Moscow
+- minute offsets avoid the top-of-hour GitHub Actions load peak
+- requires repository Actions secret CRON_SECRET before merging to main
+- workflow_dispatch runs both endpoints for a controlled dry-run
+- AUTO_PUBLISH remains OFF
+
 AUTO_PUBLISH is OFF by default.
