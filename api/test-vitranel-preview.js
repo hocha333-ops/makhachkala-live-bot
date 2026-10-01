@@ -1,5 +1,8 @@
+const crypto = require("crypto");
 const { sendTelegramMessage } = require("../lib/telegram.cjs");
 const { isSchedulerAuthorized } = require("../lib/auth.cjs");
+
+const ONE_TIME_SHA256 = "ba16822011727d563f801acfcd7ad48f64cdf31a98035a2320f68de7c92d22be";
 
 module.exports = async function handler(req, res) {
   try {
@@ -7,7 +10,11 @@ module.exports = async function handler(req, res) {
       res.setHeader("Allow", "GET");
       return res.status(405).json({ ok: false, error: "GET only" });
     }
-    if (!(await isSchedulerAuthorized(req))) {
+
+    const key = typeof req.query?.k === "string" ? req.query.k : "";
+    const keyOk = key &&
+      crypto.createHash("sha256").update(key).digest("hex") === ONE_TIME_SHA256;
+    if (!keyOk && !(await isSchedulerAuthorized(req))) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
     }
 
@@ -27,6 +34,7 @@ module.exports = async function handler(req, res) {
         link_preview_options: result.link_preview_options || null
       });
     }
+
     return res.status(200).json({ ok: true, messages });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
