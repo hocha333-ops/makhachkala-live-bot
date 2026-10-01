@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
     const actual = crypto.createHash("sha256").update(key).digest("hex");
     if (actual !== EXPECTED) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-    const result = await sendTelegramMessage("https://vitranel.ru/share");
+    const result = await sendTelegramMessage("https://vitranel.ru/tg-preview-20261001-a");
     return res.status(200).json({
       ok: true,
       message_id: result.message_id,
