@@ -1,7 +1,5 @@
-const crypto = require("crypto");
 const { sendTelegramMessage } = require("../lib/telegram.cjs");
-
-const EXPECTED = "c4429f7330f2dc1603f2a519bb380bd8dc07173093515a0ea4b5120e0c6b19c7";
+const { isSchedulerAuthorized } = require("../lib/auth.cjs");
 
 module.exports = async function handler(req, res) {
   try {
@@ -9,17 +7,27 @@ module.exports = async function handler(req, res) {
       res.setHeader("Allow", "GET");
       return res.status(405).json({ ok: false, error: "GET only" });
     }
-    const key = typeof req.query?.k === "string" ? req.query.k : "";
-    const actual = crypto.createHash("sha256").update(key).digest("hex");
-    if (actual !== EXPECTED) return res.status(401).json({ ok: false, error: "Unauthorized" });
+    if (!(await isSchedulerAuthorized(req))) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
 
-    const result = await sendTelegramMessage("https://vitranel.ru/");
-    return res.status(200).json({
-      ok: true,
-      message_id: result.message_id,
-      chat_id: result.chat?.id,
-      channel: result.chat?.username
-    });
+    const urls = [
+      "https://telegram.org/",
+      "https://vitranel.ru/",
+      "https://vitranel.ru/?tg_preview_probe=20261001-2224"
+    ];
+    const messages = [];
+    for (const url of urls) {
+      const result = await sendTelegramMessage(url);
+      messages.push({
+        url,
+        message_id: result.message_id,
+        chat_id: result.chat?.id,
+        channel: result.chat?.username,
+        link_preview_options: result.link_preview_options || null
+      });
+    }
+    return res.status(200).json({ ok: true, messages });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
   }
