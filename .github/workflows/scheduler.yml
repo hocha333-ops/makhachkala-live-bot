@@ -1,10 +1,6 @@
 name: Makhachkala LIVE scheduler
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/scheduler.yml'
   workflow_dispatch:
   schedule:
     - cron: '17 * * * *'
@@ -17,25 +13,6 @@ permissions:
   id-token: write
 
 jobs:
-  vitranel_preview_test:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - name: Send Telegram preview probes through Makhachkala LIVE bot
-        shell: bash
-        run: |
-          set -euo pipefail
-          TOKEN="$(curl --fail-with-body --silent --show-error --max-time 20 \
-            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=makhachkala-live-vercel" | jq -r '.value')"
-          test -n "$TOKEN"
-          test "$TOKEN" != "null"
-          echo "::add-mask::$TOKEN"
-          curl --fail-with-body --silent --show-error --max-time 60 \
-            -H "Authorization: Bearer ${TOKEN}" \
-            https://project-rugm4.vercel.app/api/test-vitranel-preview
-
   urgent:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
     runs-on: ubuntu-latest
