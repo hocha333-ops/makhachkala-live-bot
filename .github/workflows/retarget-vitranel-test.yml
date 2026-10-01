@@ -1,0 +1,27 @@
+name: Retarget VITRANEL Telegram test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/retarget-vitranel-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  retarget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Point test message at fresh preview route
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's#https://vitranel.ru/share#https://vitranel.ru/tg-preview-20261001-a#g' api/test-vitranel-share.js
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/test-vitranel-share.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Retarget VITRANEL Telegram test to fresh preview URL"
+          git push origin HEAD:main
