@@ -7,21 +7,19 @@ on:
       - '.github/workflows/retarget-vitranel-test.yml'
 
 permissions:
-  contents: write
+  contents: read
+  id-token: write
 
 jobs:
-  retarget:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Point test message at fresh preview route
+      - name: Send VITRANEL preview probes through Makhachkala LIVE bot
         shell: bash
         run: |
           set -euo pipefail
-          sed -i 's#https://vitranel.ru/share#https://vitranel.ru/tg-preview-20261001-a#g' api/test-vitranel-share.js
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add api/test-vitranel-share.js
-          git diff --cached --quiet && exit 0
-          git commit -m "Retarget VITRANEL Telegram test to fresh preview URL"
-          git push origin HEAD:main
+          TOKEN="$(curl --fail-with-body --silent --show-error --max-time 20             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=makhachkala-live-vercel" | jq -r '.value')"
+          test -n "$TOKEN"
+          test "$TOKEN" != "null"
+          echo "::add-mask::$TOKEN"
+          curl --fail-with-body --silent --show-error --max-time 60             -H "Authorization: Bearer ${TOKEN}"             https://project-rugm4.vercel.app/api/test-vitranel-preview
