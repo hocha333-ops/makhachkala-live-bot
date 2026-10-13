@@ -16,6 +16,10 @@ const {generateKeyPairSync,sign}=require("node:crypto");
 function test(name,fn){try{fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 async function asyncTest(name,fn){try{await fn();console.log("PASS",name);}catch(e){console.error("FAIL",name,e.stack||e.message);process.exitCode=1;}}
 
+test("outside-city district headlines are rejected",()=>{
+  assert.equal(editorial.isOutsideCity({title:"На трассе в Сергокалинском районе завершён ремонт"}),true);
+  assert.equal(editorial.isOutsideCity({title:"В Махачкале восстановили подачу воды"}),false);
+});
 test("manifest version 2.11.3 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
   assert.equal(pkg.version,"2.11.3");
