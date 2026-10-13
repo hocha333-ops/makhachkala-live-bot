@@ -1,6 +1,7 @@
 const {sendTelegramMessage}=require("../lib/telegram.cjs");
 const {fetchMchsFeed,filterMchsLocal,fetchMakhachkalaAdminTelegram,fetchMintransTelegram}=require("../lib/sources.cjs");
 const {previousHourBoundary,inWindow,uniqueBy,isUrgentImpact}=require("../lib/common.cjs");
+const {isOutsideCity}=require("../lib/editorial.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
@@ -20,10 +21,11 @@ module.exports=async function handler(req,res){
       fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];})
     ]);
     const candidates=uniqueBy([...ops,...cityAdmin,...mintrans],x=>x.link)
+      .filter(x=>!isOutsideCity(x))
       .filter(x=>isUrgentImpact(x))
       .filter(x=>inWindow(x.pubDate,start,now))
       .sort((a,b)=>b.pubDate-a.pubDate)
-      .slice(0,1)
+      .slice(0,5)
       .map(x=>Object.assign({},x,{priority:"P1",score:100,priorityReason:"Срочная оперативная информация"}));
     const auto=process.env.AUTO_PUBLISH==="true";
     const published=[],skipped=[];
