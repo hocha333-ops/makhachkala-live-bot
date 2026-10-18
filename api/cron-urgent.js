@@ -4,6 +4,7 @@ const {isCredibleUrgent}=require("../lib/news-policy.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {publishItems}=require("../lib/publish-engine.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
+const {removeDuplicate}=require("../lib/cleanup-post-24.cjs");
 
 module.exports=async function handler(req,res){
   try{
@@ -11,6 +12,7 @@ module.exports=async function handler(req,res){
     if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]})))
       return res.status(401).json({ok:false,error:"Unauthorized"});
 
+    const duplicateRemoved=await removeDuplicate();
     const now=new Date(),start=new Date(now.getTime()-6*3600000),warnings=[];
     const [ops,cityAdmin,mintrans,energy,police]=await Promise.all([
       fetchMchsFeed("/deyatelnost/press-centr/operativnaya-informaciya/rss","МЧС Дагестана").then(filterMchsLocal).catch(e=>{warnings.push("MCHS: "+e.message);return [];}),
@@ -38,7 +40,7 @@ module.exports=async function handler(req,res){
     return res.status(ok?200:503).json({
       ok,version:"2.11.3",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
-      found:candidates.length,warnings,degraded,
+      found:candidates.length,warnings,degraded,duplicateRemoved,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
       ...issues
     });
