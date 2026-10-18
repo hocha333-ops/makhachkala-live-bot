@@ -1,5 +1,5 @@
 const {sendTelegramMessage}=require("../lib/telegram.cjs");
-const {fetchMchsFeed,filterMchsLocal,fetchMakhachkalaAdminTelegram,fetchMintransTelegram}=require("../lib/sources.cjs");
+const {fetchMchsFeed,filterMchsLocal,fetchMakhachkalaAdminTelegram,fetchMintransTelegram,fetchDagenergoTelegram,fetchPoliceTelegram}=require("../lib/sources.cjs");
 const {previousHourBoundary,inWindow,uniqueBy,isUrgentImpact}=require("../lib/common.cjs");
 const {isOutsideCity}=require("../lib/editorial.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
@@ -13,14 +13,16 @@ module.exports=async function handler(req,res){
     if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]}))){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
-    const now=new Date(),start=previousHourBoundary(now);
+    const now=new Date(),start=new Date(Date.now()-6*60*60*1000);
     const warnings=[];
-    const [ops,cityAdmin,mintrans]=await Promise.all([
+    const [ops,cityAdmin,mintrans,energy,police]=await Promise.all([
       fetchMchsFeed("/deyatelnost/press-centr/operativnaya-informaciya/rss","МЧС Дагестана").then(filterMchsLocal).catch(e=>{warnings.push(`MCHS: ${e.message}`);return [];}),
       fetchMakhachkalaAdminTelegram().catch(e=>{warnings.push(`CITY_ADMIN_TG: ${e.message}`);return [];}),
-      fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];})
+      fetchMintransTelegram().catch(e=>{warnings.push(`MINTRANS_TG: ${e.message}`);return [];}),
+      fetchDagenergoTelegram().catch(e=>{warnings.push(`ENERGY_TG: ${e.message}`);return [];}),
+      fetchPoliceTelegram().catch(e=>{warnings.push(`POLICE_TG: ${e.message}`);return [];})
     ]);
-    const candidates=uniqueBy([...ops,...cityAdmin,...mintrans],x=>x.link)
+    const candidates=uniqueBy([...ops,...cityAdmin,...mintrans,...energy,...police],x=>x.link)
       .filter(x=>!isOutsideCity(x))
       .filter(x=>isUrgentImpact(x))
       .filter(x=>inWindow(x.pubDate,start,now))
@@ -45,8 +47,9 @@ module.exports=async function handler(req,res){
         }
       }
     }
-    return res.status(200).json({
-      ok:true,version:"2.11.3",mode:auto?"publish":"dry-run",
+    const hasErrors=skipped.some(x=>x.reason==='journal_error'||x.reason==='publish_failed');
+    return res.status(hasErrors?503:200).json({
+      ok:!hasErrors,version:"2.11.3",mode:auto?"publish":"dry-run",
       window:{from:start.toISOString(),to:now.toISOString()},
       found:candidates.length,warnings,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
