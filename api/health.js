@@ -1,15 +1,6 @@
-module.exports = function handler(req,res){
+module.exports=function handler(req,res){
+  if(req.method!=="GET")return res.status(405).json({ok:false,error:"GET only"});
   res.setHeader("Cache-Control","no-store");
-  res.status(200).json({
-    ok:true,
-    service:"makhachkala-live-bot",
-    version:"2.11.3",
-    telegramTokenConfigured:Boolean(process.env.TELEGRAM_BOT_TOKEN),
-    channelConfigured:Boolean(process.env.TELEGRAM_CHANNEL),
-    publishSecretConfigured:Boolean(process.env.PUBLISH_SECRET),
-    cronSecretConfigured:Boolean(process.env.CRON_SECRET),
-    persistentDedup:"supabase-rpc",
-    pendingRecovery:"manual-reconciliation",
-    autoPublish:process.env.AUTO_PUBLISH === "true"
-  });
+  // Public health should not disclose deployment secrets or operator configuration.
+  return res.status(200).json({ok:true,service:"makhachkala-live-bot",version:"2.11.3"});
 };

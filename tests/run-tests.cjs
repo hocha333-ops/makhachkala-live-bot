@@ -23,7 +23,7 @@ test("outside-city district headlines are rejected",()=>{
 test("manifest version 2.11.3 and Vercel release gate",()=>{
   const pkg=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
   assert.equal(pkg.version,"2.11.3");
-  assert.equal(pkg.scripts.test,"node tests/run-tests.cjs");
+  assert.match(pkg.scripts.test,/tests\/audit-regressions\.cjs/);
   assert.equal(pkg.scripts["vercel-build"],"npm test");
 });
 
