@@ -33,4 +33,15 @@ async function checkMintransCityOnly(){
     assert.deepEqual(result.map(x=>x.link),["https://t.me/mintransRD/811"]);
   }finally{global.fetch=oldFetch;}
 }
-checkMintransCityOnly().catch(e=>{console.error(e);process.exitCode=1;});
+async function checkHourlyEditorialWindow(){
+  const now=new Date("2026-10-18T12:00:00Z");
+  const fake='<div data-post="makhachkalaofficial/1001"><div class="tgme_widget_message_text">В Махачкале изменили маршрут городского автобуса №5.<br>Изменения действуют с сегодняшнего дня.</div><time datetime="2026-10-18T09:30:00Z"></time></div><div data-post="makhachkalaofficial/1002"><div class="tgme_widget_message_text">В Махачкале отремонтировали старый водопровод.<br>Работы завершились на прошлой неделе.</div><time datetime="2026-10-18T03:00:00Z"></time></div>';
+  const oldFetch=global.fetch;
+  global.fetch=async url=>({ok:true,status:200,text:async()=>String(url).includes("t.me/s/makhachkalaofficial")?fake:"<rss/>"});
+  try{
+    const result=await editorial.collectEditorialCandidates(now,15);
+    assert.equal(result.start.toISOString(),"2026-10-18T06:00:00.000Z");
+    assert.deepEqual(result.candidates.map(x=>x.link),["https://t.me/makhachkalaofficial/1001"]);
+  }finally{global.fetch=oldFetch;}
+}
+checkMintransCityOnly().then(checkHourlyEditorialWindow).then(()=>console.log("PASS hourly editorial window")).catch(e=>{console.error(e);process.exitCode=1;});
