@@ -2,7 +2,8 @@ const {sendTelegramMessage}=require("../lib/telegram.cjs");
 const {collectEditorialCandidates}=require("../lib/editorial.cjs");
 const {formatEditorial}=require("../lib/format.cjs");
 const {buildEditorialSummary}=require("../lib/common.cjs");
-const {claimPublication,markPublication}=require("../lib/journal.cjs");
+const {claimPublication,markPublication,recentPublications}=require("../lib/journal.cjs");
+const {sameStoryTitle}=require("../lib/story-quality.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
 module.exports=async function handler(req,res){
@@ -15,8 +16,15 @@ module.exports=async function handler(req,res){
     const auto=process.env.AUTO_PUBLISH==="true";
     const published=[],skipped=[];
     if(auto){
+      let seenTitles=[];
+      try{
+        const recent=await recentPublications(200);
+        seenTitles=(Array.isArray(recent)?recent:[])
+          .filter(x=>x.status==="published").map(x=>x.title);
+      }catch(e){return res.status(503).json({ok:false,error:"journal_recent_error",detail:e.message});}
       for(const item of result.candidates){
         if(published.length>=3) break;
+        if(seenTitles.some(t=>sameStoryTitle(t,item.title))){skipped.push({title:item.title,link:item.link,reason:"already_covered"});continue;}
         let claim;
         try{ claim=await claimPublication(item); }
         catch(e){ skipped.push({title:item.title,link:item.link,reason:"journal_error",error:e.message}); continue; }
@@ -28,6 +36,7 @@ module.exports=async function handler(req,res){
           const msg=await sendTelegramMessage(formatEditorial(item),{parseMode:"HTML"});
           await markPublication(item.link,"published",msg.message_id,null);
           published.push({message_id:msg.message_id,title:item.title,link:item.link,priority:item.priority});
+          seenTitles.push(item.title);
         }catch(e){
           try{await markPublication(item.link,"failed",null,e.message);}catch{}
           skipped.push({title:item.title,link:item.link,reason:"publish_failed",error:e.message});
