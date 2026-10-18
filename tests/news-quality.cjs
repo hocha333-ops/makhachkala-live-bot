@@ -14,9 +14,11 @@ const a="В Махачкале демонтируют капитальные о�
 const b="На улице Штормовой специалисты Управления координации капитального строительства демонтируют капитальные ограждения";
 assert.equal(quality.sameStoryTitle(a,b),true);
 assert.equal(quality.uniqueNearDuplicateStories([{title:a},{title:b}]).length,1);
+assert.equal(quality.sameStoryTitle(a+". Цель – расширить проезжую часть и улучшить условия движения",b),true);
 assert.equal(quality.sameStoryTitle(a,"В Махачкале открыли выставку живописи"),false);
 assert.equal(editorial.isLowValuePR({title:"Начальник управления принимает участие в образовательном семинаре"}),true);
 assert.equal(editorial.isLowValuePR({title:"Глава города поздравил работников дорожной отрасли с праздником"}),true);
+assert.equal(editorial.isLowValuePR({title:"Уважаемые работники и ветераны дорожного хозяйства",description:"Дорогие махачкалинцы! Сердечно поздравляю вас с профессиональным праздником."}),true);
 assert.equal(common.isUrgentImpact({title:"На улице Штормовой ведут ремонт",description:"Расширяют дорогу"}),false);
 assert.equal(common.isUrgentImpact({title:"В Махачкале объявлено штормовое предупреждение",description:"Сильный ветер"}),true);
 for(const name of ["fetchDagenergoTelegram","fetchCityNewsTelegram","fetchPoliceTelegram"])assert.equal(typeof sources[name],"function");
