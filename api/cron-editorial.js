@@ -4,7 +4,6 @@ const {formatEditorial}=require("../lib/format.cjs");
 const {buildEditorialSummary}=require("../lib/common.cjs");
 const {claimPublication,markPublication,recentPublications}=require("../lib/journal.cjs");
 const {sameStoryTitle}=require("../lib/story-quality.cjs");
-const {getPowerNotice}=require("../lib/one-time-power-notice.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
 module.exports=async function handler(req,res){
@@ -13,12 +12,7 @@ module.exports=async function handler(req,res){
     if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]}))){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
-    const now=new Date();
-    const result=await collectEditorialCandidates(now,15);
-    const recovery=getPowerNotice(now);
-    if(recovery && !result.candidates.some(x=>x.link===recovery.link)){
-      result.candidates.unshift(recovery);
-    }
+    const result=await collectEditorialCandidates(new Date(),15);
     const auto=process.env.AUTO_PUBLISH==="true";
     const published=[],skipped=[];
     if(auto){
@@ -40,7 +34,7 @@ module.exports=async function handler(req,res){
           continue;
         }
         try{
-          const msg=await sendTelegramMessage(item.postHtml||formatEditorial(item),{parseMode:"HTML"});
+          const msg=await sendTelegramMessage(formatEditorial(item),{parseMode:"HTML"});
           await markPublication(item.link,"published",msg.message_id,null);
           published.push({message_id:msg.message_id,title:item.title,link:item.link,priority:item.priority});
           seenTitles.push(item.title);
