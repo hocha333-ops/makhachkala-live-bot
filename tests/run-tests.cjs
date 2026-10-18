@@ -196,7 +196,7 @@ test("GitHub scheduler workflow requests OIDC and does not depend on shared repo
   assert.doesNotMatch(s,/^\s*push:\s*$/m);
   assert.equal(s.includes("github.event_name == 'push'"),false);
   assert.match(s,/cron:\s*['"]17 \* \* \* \*['"]/);
-  assert.match(s,/cron:\s*['"]7 8,13,18 \* \* \*['"]/);
+  assert.match(s,/cron:\s*['"]27 \* \* \* \*['"]/);
   assert.match(s,/timezone:\s*['"]Europe\/Moscow['"]/);
   assert.match(s,/\/api\/cron-urgent/);
   assert.match(s,/\/api\/cron-editorial/);
