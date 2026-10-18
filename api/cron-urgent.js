@@ -5,6 +5,7 @@ const {isOutsideCity}=require("../lib/editorial.cjs");
 const {formatUrgent}=require("../lib/format.cjs");
 const {claimPublication,markPublication}=require("../lib/journal.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
+const {deleteRoadDuplicate}=require("../lib/one-time-delete-road-dupe.cjs");
 
 
 module.exports=async function handler(req,res){
@@ -13,6 +14,7 @@ module.exports=async function handler(req,res){
     if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]}))){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
+    const duplicateCleanup=await deleteRoadDuplicate();
     const now=new Date(),start=new Date(Date.now()-6*60*60*1000);
     const warnings=[];
     const [ops,cityAdmin,mintrans,energy,police]=await Promise.all([
@@ -50,7 +52,7 @@ module.exports=async function handler(req,res){
     const hasErrors=skipped.some(x=>x.reason==='journal_error'||x.reason==='publish_failed');
     return res.status(hasErrors?503:200).json({
       ok:!hasErrors,version:"2.11.3",mode:auto?"publish":"dry-run",
-      window:{from:start.toISOString(),to:now.toISOString()},
+      window:{from:start.toISOString(),to:now.toISOString()},duplicateCleanup,
       found:candidates.length,warnings,
       candidates:candidates.map(x=>({title:x.title,source:x.source,date:x.pubDate.toISOString(),priority:"P1",link:x.link})),
       published,skipped
