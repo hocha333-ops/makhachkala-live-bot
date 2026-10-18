@@ -3,8 +3,10 @@
   "version": "2.11.3",
   "private": true,
   "scripts": {
-    "test": "node tests/run-tests.cjs",
+    "test": "node tests/run-tests.cjs && node tests/news-quality.cjs && node tests/audit-regressions.cjs",
     "vercel-build": "npm test"
   },
-  "engines": {"node": ">=20"}
+  "engines": {
+    "node": ">=20"
+  }
 }
