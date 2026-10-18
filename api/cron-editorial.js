@@ -11,11 +11,12 @@ module.exports=async function handler(req,res){
     if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]}))){
       return res.status(401).json({ok:false,error:"Unauthorized"});
     }
-    const result=await collectEditorialCandidates(new Date(),2);
+    const result=await collectEditorialCandidates(new Date(),15);
     const auto=process.env.AUTO_PUBLISH==="true";
     const published=[],skipped=[];
     if(auto){
       for(const item of result.candidates){
+        if(published.length>=3) break;
         let claim;
         try{ claim=await claimPublication(item); }
         catch(e){ skipped.push({title:item.title,link:item.link,reason:"journal_error",error:e.message}); continue; }
@@ -33,8 +34,9 @@ module.exports=async function handler(req,res){
         }
       }
     }
-    return res.status(200).json({
-      ok:true,version:"2.11.3",mode:auto?"publish":"dry-run",
+    const hasErrors=skipped.some(x=>x.reason==="journal_error"||x.reason==="publish_failed");
+    return res.status(hasErrors?503:200).json({
+      ok:!hasErrors,version:"2.11.3",mode:auto?"publish":"dry-run",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
       found:result.candidates.length,warnings:result.warnings,
       candidates:result.candidates.map(x=>({
