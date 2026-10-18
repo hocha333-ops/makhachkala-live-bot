@@ -1,60 +1,39 @@
-const {sendTelegramMessage}=require("../lib/telegram.cjs");
 const {collectEditorialCandidates}=require("../lib/editorial.cjs");
 const {formatEditorial}=require("../lib/format.cjs");
 const {buildEditorialSummary}=require("../lib/common.cjs");
-const {claimPublication,markPublication,recentPublications}=require("../lib/journal.cjs");
-const {sameStoryTitle}=require("../lib/story-quality.cjs");
+const {publishItems}=require("../lib/publish-engine.cjs");
 const {isSchedulerAuthorized}=require("../lib/auth.cjs");
 
 module.exports=async function handler(req,res){
   try{
-    if(req.method!=="GET") return res.status(405).json({ok:false,error:"GET only"});
-    if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]}))){
+    if(req.method!=="GET")return res.status(405).json({ok:false,error:"GET only"});
+    if(!(await isSchedulerAuthorized(req,{allowedRefs:["refs/heads/main"]})))
       return res.status(401).json({ok:false,error:"Unauthorized"});
-    }
-    const result=await collectEditorialCandidates(new Date(),15);
+
+    const now=new Date();
+    const result=await collectEditorialCandidates(now,20);
     const auto=process.env.AUTO_PUBLISH==="true";
-    const published=[],skipped=[];
+    const issues={published:[],skipped:[],errors:[]};
     if(auto){
-      let seenTitles=[];
       try{
-        const recent=await recentPublications(200);
-        seenTitles=(Array.isArray(recent)?recent:[])
-          .filter(x=>x.status==="published").map(x=>x.title);
-      }catch(e){return res.status(503).json({ok:false,error:"journal_recent_error",detail:e.message});}
-      for(const item of result.candidates){
-        if(published.length>=3) break;
-        if(published.filter(x=>x.priority===item.priority).length>=2) continue;
-        if(seenTitles.some(t=>sameStoryTitle(t,item.title))){skipped.push({title:item.title,link:item.link,reason:"already_covered"});continue;}
-        let claim;
-        try{ claim=await claimPublication(item); }
-        catch(e){ skipped.push({title:item.title,link:item.link,reason:"journal_error",error:e.message}); continue; }
-        if(!claim?.claimed){
-          skipped.push({title:item.title,link:item.link,reason:"duplicate_or_pending",status:claim?.status||null});
-          continue;
-        }
-        try{
-          const msg=await sendTelegramMessage(formatEditorial(item),{parseMode:"HTML"});
-          await markPublication(item.link,"published",msg.message_id,null);
-          published.push({message_id:msg.message_id,title:item.title,link:item.link,priority:item.priority});
-          seenTitles.push(item.title);
-        }catch(e){
-          try{await markPublication(item.link,"failed",null,e.message);}catch{}
-          skipped.push({title:item.title,link:item.link,reason:"publish_failed",error:e.message});
-        }
-      }
+        Object.assign(issues,await publishItems(result.candidates,{
+          now,format:formatEditorial,limit:3,priorityLimit:2
+        }));
+      }catch(e){issues.errors.push({reason:"journal_unavailable",error:e.message});}
     }
-    const hasErrors=skipped.some(x=>x.reason==="journal_error"||x.reason==="publish_failed");
-    return res.status(hasErrors?503:200).json({
-      ok:!hasErrors,version:"2.11.3",mode:auto?"publish":"dry-run",
+    // Missing a majority of feeds is not a successful scan even if HTTP itself worked.
+    const degraded=result.warnings.length>=4;
+    const ok=issues.errors.length===0&&!degraded;
+    return res.status(ok?200:503).json({
+      ok,version:"2.11.3",mode:auto?"publish":"dry-run",
       window:{from:result.start.toISOString(),to:result.now.toISOString()},
-      found:result.candidates.length,warnings:result.warnings,
+      found:result.candidates.length,warnings:result.warnings,degraded,
       candidates:result.candidates.map(x=>({
         title:x.title,source:x.source,date:x.pubDate.toISOString(),
         priority:x.priority,score:x.score,priorityReason:x.priorityReason,
         summary:buildEditorialSummary(x),postPreview:formatEditorial(x),link:x.link
       })),
-      published,skipped
+      ...issues
     });
-  }catch(e){ return res.status(500).json({ok:false,error:e.message}); }
+  }catch(e){return res.status(500).json({ok:false,error:e.message});}
 };
