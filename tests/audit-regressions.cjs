@@ -79,6 +79,18 @@ async function main(){
   assert.equal(ambiguousDelivery.errors[0].reason,"telegram_delivery_uncertain");
   assert.deepEqual(markStatuses,[],"Ambiguous network delivery must stay pending");
 
+  markStatuses=[];
+  const rejected=new Error("Telegram returned HTTP 400");
+  rejected.telegramRejected=true;
+  const definiteReject=await publisher.publishItems([outage],{
+    now,recent:async()=>[],claim:async()=>({claimed:true}),
+    send:async()=>{throw rejected},
+    mark:async(url,status)=>{markStatuses.push(status);return{status}},
+    format:x=>x.title
+  });
+  assert.equal(definiteReject.errors[0].reason,"telegram_rejected");
+  assert.deepEqual(markStatuses,["failed"],"A definitive rejection can be retried safely");
+
   let calls=0;
   const journalOut=await publisher.publishItems([outage],{
     now,recent:async()=>{throw Error("DB unauthorized")},
