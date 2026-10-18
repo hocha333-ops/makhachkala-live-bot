@@ -31,6 +31,12 @@ async function main(){
   assert.equal(policy.isCredibleUrgent(news("В Махачкале произошло аварийное отключение света","На линиях проводят восстановительные работы")),true);
   assert.equal(policy.isCredibleUrgent(news("Пожар в жилом доме","В Махачкале горит жилой дом. МЧС работают на месте.","МЧС Дагестана")),true);
 
+  const initialElectricityTitle="19–20 октября в Махачкале запланированы отключения электричества";
+  const secondSourceTitle="График ограничений электроснабжения в г. Махачкале Республики Дагестан на 19 и 20 октября 2026 года";
+  assert(quality.sameStory(initialElectricityTitle,secondSourceTitle),"Same outage from city hall and Dagenergo is not a new event");
+  assert(!quality.sameStory(initialElectricityTitle,"График ограничений электроснабжения в г. Махачкале на 21 октября 2026 года"),"A new date must be a distinct event");
+  assert(!quality.sameStory(initialElectricityTitle,"Изменили график ограничений электроснабжения в Махачкале на 19 и 20 октября 2026 года"),"A material change must be postable");
+
   const publishedRoad={title:"За неделю в Махачкале уложили более 1 900 кв",status:"published",published_at:"2026-10-18T10:37:36Z"};
   const otherRoad=news("Дорожные бригады обновили покрытие на 24 объектах в Махачкале");
   otherRoad.priority="P2";
