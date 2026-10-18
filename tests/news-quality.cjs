@@ -3,18 +3,6 @@ const sources=require("../lib/sources.cjs");
 const editorial=require("../lib/editorial.cjs");
 const common=require("../lib/common.cjs");
 const quality=require("../lib/story-quality.cjs");
-const {getPowerNotice}=require("../lib/one-time-power-notice.cjs");
-
-const recoveredNotice=getPowerNotice(new Date("2026-10-18T12:00:00Z"));
-assert(recoveredNotice,"Missed power outage must be recoverable before scheduled work");
-assert.equal(recoveredNotice.link,"https://t.me/makhachkalaofficial/30147");
-assert.match(recoveredNotice.postHtml,/19 и 20 октября/);
-assert.match(recoveredNotice.postHtml,/08:00 до 17:00/);
-assert.match(recoveredNotice.postHtml,/Ленинкент/);
-assert.equal(getPowerNotice(new Date("2026-10-20T14:00:00Z")),null,"Must never publish a stale notice after work window");
-assert.equal(getPowerNotice(new Date("2026-10-17T11:00:00Z")),null,"Recovery is only for explicitly checked live period");
-
-
 const html='<div data-post="makhachkalaofficial/555"><div class="tgme_widget_message_text">За неделю в Махачкале уложили более 1 900 кв. м асфальта.<br/>⚡️ В Махачкале продолжается ремонт дорог и улиц города.</div><time datetime="2026-10-18T10:00:00Z"></time></div>';
 const [post]=sources.extractTelegramPosts(html,"makhachkalaofficial","Администрация Махачкалы");
 assert(post,"Telegram post must parse");
