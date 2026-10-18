@@ -24,6 +24,7 @@ module.exports=async function handler(req,res){
       }catch(e){return res.status(503).json({ok:false,error:"journal_recent_error",detail:e.message});}
       for(const item of result.candidates){
         if(published.length>=3) break;
+        if(published.filter(x=>x.priority===item.priority).length>=2) continue;
         if(seenTitles.some(t=>sameStoryTitle(t,item.title))){skipped.push({title:item.title,link:item.link,reason:"already_covered"});continue;}
         let claim;
         try{ claim=await claimPublication(item); }
